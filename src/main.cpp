@@ -6,7 +6,7 @@ int main()
 	rn.buildGraph();
 //	rn.testGraph();
 
-	rn.distanceDijkstra(41,2);
+	cout << rn.distanceDijkstra(41,2) << endl;
 
 	return 0;
 }

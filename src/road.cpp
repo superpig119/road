@@ -56,12 +56,17 @@ float RoadNetwork::distanceDijkstra(int ID1, int ID2)
 		}
 	}
 	
-	map<int, float>::iterator imD;
+/*	map<int, float>::iterator imD;
 	for(imD = mDistance.begin(); imD != mDistance.end(); imD++)
 	{
 		if((*imD).second < 1000)
 		cout << (*imD).first << "\tDistance:" << (*imD).second << endl;
-	}
+	}*/
+	
+	if(mDistance.find(ID2) != mDistance.end())
+		return mDistance[ID2];
+	else 
+		return -1;
 	
 }
 
