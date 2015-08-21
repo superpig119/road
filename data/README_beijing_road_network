@@ -1,0 +1,11 @@
+beijing.txt data structure
+
+Intersection Number:168535
+Intersection INFO:
+Intersection ID | X coordinate | Y coordinate
+...
+
+Road Number:223754
+Road Info:
+Intersection1 ID | Intersection2 ID | Road Length | ...
+Intersection1 Coordinate, Many turns or segment points along the road,..., Intersection2 Coordinate
