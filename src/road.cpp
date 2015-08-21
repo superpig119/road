@@ -1,5 +1,70 @@
 #include "road.h"
 
+#define INF 99999999
+
+typedef struct heap
+{
+	pair<int, float> pif;
+	bool operator < (const struct heap &a) const  
+	{  
+		return pif.second > a.pif.second; 
+	} 
+}h;
+
+float RoadNetwork::distanceDijkstra(int ID1, int ID2)
+{
+	map<int, float> mDistance;
+	priority_queue<h> qh;
+	for(int i = 0; i < g.vNode.size(); i++)
+	{
+		if(i == ID1)
+		{
+			mDistance[i] = 0;
+			continue;
+		}
+
+		if(g.vNode[ID1].mNeighborLength.find(i) != g.vNode[ID1].mNeighborLength.end())
+		{
+			mDistance[i] = g.vNode[ID1].mNeighborLength[i];
+			h hh;
+			hh.pif = make_pair(i, g.vNode[ID1].mNeighborLength[i]);
+			qh.push(hh);
+			cout << i << "\t" << g.vNode[ID1].mNeighborLength[i] << endl;
+		}
+	}
+
+	pair<int, float> pu;
+	map<int, float>::iterator imNL;
+	while(!qh.empty())
+	{
+		pu = qh.top().pif;
+		qh.pop();
+		for(imNL = g.vNode[pu.first].mNeighborLength.begin(); imNL != g.vNode[pu.first].mNeighborLength.end(); imNL++)
+		{
+			if(mDistance.find((*imNL).first) == mDistance.end())
+			{
+				float d = mDistance[pu.first] + (*imNL).second;
+				mDistance[(*imNL).first] = d;
+				h hh;
+				hh.pif = make_pair((*imNL).first, d);
+				qh.push(hh);
+			}
+			else if(mDistance[(*imNL).first] > mDistance[pu.first] + (*imNL).second)
+			{
+				mDistance[(*imNL).first] = mDistance[pu.first] + (*imNL).second;
+			}
+		}
+	}
+	
+	map<int, float>::iterator imD;
+	for(imD = mDistance.begin(); imD != mDistance.end(); imD++)
+	{
+		if((*imD).second < 1000)
+		cout << (*imD).first << "\tDistance:" << (*imD).second << endl;
+	}
+	
+}
+
 int RoadNetwork::buildGraph()
 {
 	Conf conf;

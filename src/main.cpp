@@ -6,5 +6,7 @@ int main()
 	rn.buildGraph();
 //	rn.testGraph();
 
+	rn.distanceDijkstra(41,2);
+
 	return 0;
 }

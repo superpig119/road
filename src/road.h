@@ -3,6 +3,8 @@
 #include <map>
 #include <sstream>
 #include <iomanip>
+#include <algorithm>
+#include <queue>
 #include "conf.h"
 
 using namespace std;
@@ -38,6 +40,9 @@ public:
 
 	int buildGraph();
 	void testGraph();
+
+	float distanceDijkstra(int ID1, int ID2);
 //	int loadGraph();
 //	int writeGraph();
 };
+
