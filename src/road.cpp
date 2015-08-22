@@ -13,61 +13,72 @@ typedef struct heap
 
 float RoadNetwork::distanceDijkstra(int ID1, int ID2)
 {
-	map<int, float> mDistance;
+//	map<int, float> mDistance;
+	vector<float> vDistance(g.vNode.size(), INF);
+	vector<float>::iterator ivD;
 	priority_queue<h> qh;
-	for(int i = 0; i < g.vNode.size(); i++)
-	{
-		if(i == ID1)
-		{
-			mDistance[i] = 0;
-			continue;
-		}
+	vector<int> vPrevious(g.vNode.size(), -1);
+	vector<int>::iterator ivP;
+	map<int, float>::iterator imNL;
 
-		if(g.vNode[ID1].mNeighborLength.find(i) != g.vNode[ID1].mNeighborLength.end())
-		{
-			mDistance[i] = g.vNode[ID1].mNeighborLength[i];
-			h hh;
-			hh.pif = make_pair(i, g.vNode[ID1].mNeighborLength[i]);
-			qh.push(hh);
-			cout << i << "\t" << g.vNode[ID1].mNeighborLength[i] << endl;
-		}
+	vDistance[ID1] = 0;
+	for(imNL = g.vNode[ID1].mNeighborLength.begin(); imNL != g.vNode[ID1].mNeighborLength.end(); imNL++)
+	{
+		vDistance[(*imNL).first] = (*imNL).second;
+		h hh;
+		hh.pif = make_pair((*imNL).first, (*imNL).second);
+		qh.push(hh);
+		vPrevious[(*imNL).first] = ID1;
 	}
 
 	pair<int, float> pu;
-	map<int, float>::iterator imNL;
 	while(!qh.empty())
 	{
 		pu = qh.top().pif;
 		qh.pop();
 		for(imNL = g.vNode[pu.first].mNeighborLength.begin(); imNL != g.vNode[pu.first].mNeighborLength.end(); imNL++)
 		{
-			if(mDistance.find((*imNL).first) == mDistance.end())
+			if(vDistance[(*imNL).first] == INF && (*imNL).first != ID1)
 			{
-				float d = mDistance[pu.first] + (*imNL).second;
-				mDistance[(*imNL).first] = d;
+				float d = vDistance[pu.first] + (*imNL).second;
+				vDistance[(*imNL).first] = d;
 				h hh;
 				hh.pif = make_pair((*imNL).first, d);
 				qh.push(hh);
+				vPrevious[(*imNL).first] = pu.first;
 			}
-			else if(mDistance[(*imNL).first] > mDistance[pu.first] + (*imNL).second)
+			else if(vDistance[(*imNL).first] > vDistance[pu.first] + (*imNL).second)
 			{
-				mDistance[(*imNL).first] = mDistance[pu.first] + (*imNL).second;
+				vDistance[(*imNL).first] = vDistance[pu.first] + (*imNL).second;
+				vPrevious[(*imNL).first] = pu.first;
 			}
 		}
 	}
 	
-/*	map<int, float>::iterator imD;
-	for(imD = mDistance.begin(); imD != mDistance.end(); imD++)
+/*	for(imD = mDistance.begin(); imD != mDistance.end(); imD++)
 	{
 		if((*imD).second < 1000)
 		cout << (*imD).first << "\tDistance:" << (*imD).second << endl;
 	}*/
 	
-	if(mDistance.find(ID2) != mDistance.end())
-		return mDistance[ID2];
-	else 
-		return -1;
-	
+	cout << setprecision(15) << "ID1:" << ID1 << "\t" << g.vNode[ID1].x << "\t" << g.vNode[ID1].y << endl;
+	cout << setprecision(15) << "ID2:" << ID2 << "\t" << g.vNode[ID2].x << "\t" << g.vNode[ID2].y << endl;
+
+	cout << "Path:" << endl;
+	int id = ID2;
+	int idtmp;
+	cout << "Distance:" << vDistance[ID2] << endl;
+	if(vDistance[ID2] != INF)
+	{	
+		while(id != ID1)
+		{
+			idtmp = vPrevious[id];
+			cout << setprecision(15) << idtmp << "\tto\t" << id << "\tDistance:" << vDistance[id] << "\tCoordinate:\t" <<g.vNode[id].x << "\t" << g.vNode[id].y << endl;
+			id = idtmp;
+		}
+	}
+
+	return vDistance[ID2];
 }
 
 int RoadNetwork::buildGraph()
