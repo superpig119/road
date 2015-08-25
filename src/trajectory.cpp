@@ -29,7 +29,7 @@ int Trajectory::readRawTrajectory()
 		ss.str("");
 		ss << dirp->d_name;
 		ss >> stmp;
-		if(stmp != "." && stmp != "..")
+		if(stmp.find(".txt") != string::npos)
 			vFile.push_back(stmp);
 	}
 
