@@ -4,11 +4,15 @@
 
 using namespace std;
 
+#ifndef CONF_H_
+#define CONF_H_
 
 class Conf
 {
 public:
-	string filepath;
+	string roadFilePath;
+	string rawTrajectoryFolder;
 
 	int readConf();
 };
+#endif

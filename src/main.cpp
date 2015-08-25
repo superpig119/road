@@ -1,4 +1,5 @@
 #include "road.h"
+#include "trajectory.h"
 
 int main()
 {
@@ -6,7 +7,10 @@ int main()
 	rn.buildGraph();
 //	rn.testGraph();
 
-	cout << rn.distanceDijkstra(41,2) << endl;
+//	cout << rn.distanceDijkstra(41,2) << endl;
+
+	Trajectory tr;
+	tr.readRawTrajectory();
 
 	return 0;
 }

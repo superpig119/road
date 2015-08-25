@@ -86,15 +86,15 @@ int RoadNetwork::buildGraph()
 	Conf conf;
 	if(conf.readConf())
 	{
-		return 1;
+		return -1;
 	}
 	
-	ifstream ifile(conf.filepath.c_str());
-	cout << conf.filepath << endl;
+	ifstream ifile(conf.roadFilePath.c_str());
+	cout << conf.roadFilePath << endl;
 	if(!ifile)
 	{
 		cout << "Cannot open data file" << endl;
-		return 1;
+		return -1;
 	}
 
 	int nodeNum, roadNum, i, j;

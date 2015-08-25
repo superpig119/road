@@ -9,9 +9,13 @@ int Conf::readConf()
 		return 1;
 	}
 	string s;
-	ifile >> s;
-	if(s == "datapath")
-		ifile >> filepath;
+	while(ifile >> s)
+	{
+		if(s == "datapath")
+			ifile >> roadFilePath;
+		else if(s == "rawTrajectory")
+			ifile >> rawTrajectoryFolder;
+	}
 
 	return 0;
 }
