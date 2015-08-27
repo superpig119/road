@@ -15,6 +15,8 @@ int Conf::readConf()
 			ifile >> roadFilePath;
 		else if(s == "rawTrajectory")
 			ifile >> rawTrajectoryFolder;
+        else if(s == "QuadTreeLevel")
+            ifile >> QuadTreeLevel;
 	}
 
 	return 0;

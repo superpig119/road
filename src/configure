@@ -1,2 +1,3 @@
 datapath ../data/beijing.txt
 rawTrajectory ../data/Trajectory/MatchHighData65/
+QuadTreeLevel 6

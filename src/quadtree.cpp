@@ -151,3 +151,38 @@ bool Quadtree::contains(Quadtree* child, simpleNode node)
 //               node->x + node->width > child->x + child->width ||
 //               node->y + node->height > child->y + child->height);
 }
+    
+Quadtree* Quadtree::getRegion(double nodeX, double nodeY)
+{
+    int i = 0;
+    Quadtree* qt;
+    qt = this;
+    while(i < maxLevel - 1)
+    {
+        i++;
+        if(nodeX > qt->x + qt->width / 2.0f && nodeX < qt->x + qt->width)
+        {
+            if(nodeY > qt->y + qt->height / 2.0f && nodeY < qt->y + qt->height)
+            {
+                qt = qt->NE;
+            }
+            else if(nodeY > qt->y && nodeY <= qt->y + qt->height)
+            {
+                qt = qt->SE;
+            }
+        }
+        else if (nodeX > qt->x && nodeX <= qt->x + qt->width / 2.0f)
+        {
+            if (nodeY > qt->y + qt->height / 2.0f && nodeY < qt->y + qt->height)
+            {
+                qt = qt->NW;
+            }
+            else if (nodeY > qt->y && nodeY <= qt->y + qt->height / 2.0f)
+            {
+                qt = qt->SW;
+            }
+        }
+    }
+    
+    return qt;
+}

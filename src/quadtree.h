@@ -6,8 +6,8 @@
 //  Copyright (c) 2015 Thor. All rights reserved.
 //
 
-#ifndef road_quadtree_h
-#define road_quadtree_h
+#ifndef quadtree_h
+#define quadtree_h
 
 #include <vector>
 
@@ -19,7 +19,8 @@ typedef struct SIMPLENODE
     vector<int> vRoadList;
 }simpleNode;
 
-class Quadtree {
+class Quadtree 
+{
 public:
 	Quadtree(double x, double y, double width, double height, int level, int maxLevel);
     
@@ -27,9 +28,9 @@ public:
     
     void AddNode(simpleNode node);
     vector<simpleNode>	GetNodeAt(double x, double y);
+    Quadtree* getRegion(double nodeX, double nodeY);
     void Clear();
     
-private:
     double	x;
     double	y;
     double  width;

@@ -12,7 +12,7 @@ class Conf
 public:
 	string roadFilePath;
 	string rawTrajectoryFolder;
-
+    int QuadTreeLevel;
 	int readConf();
 };
 #endif

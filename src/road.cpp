@@ -89,6 +89,7 @@ int RoadNetwork::buildGraph()
 		return -1;
 	}
 	
+    int count = 0;
 	maxX = 0;
 	maxY = 0;
 	minX = 90;
@@ -116,6 +117,7 @@ int RoadNetwork::buildGraph()
 		ifile >> n.y;
 		updateMMXY(n.x, n.y);
 		g.vNode.push_back(n);
+        count++;
 	}
 
 	ifile >> roadNum;
@@ -170,16 +172,18 @@ int RoadNetwork::buildGraph()
 				ss >> y;
 				ri.vpRoadDetail.push_back(make_pair(x,y));
 				updateMMXY(x, y);
+                count++;
 			}
 		}
 
 		g.vRoad.push_back(ri);
 	}
-
+    cout << setprecision(15) << "minX:" << minX << "\tmaxX:" << maxX << "\tminY:" << minY << "\tmaxY:" << maxY << endl;
+    cout << "Total node number:" << count << endl;
 	return 0;
 }
 
-void RoadNetwork::updateMMXY(int x, int y)
+void RoadNetwork::updateMMXY(double x, double y)
 {
 	if(x > maxX)
 		maxX = x;
@@ -216,10 +220,16 @@ void RoadNetwork::testGraph()
 	}
 }
 
-void RoadNetwork::buildQuadTree()
+int RoadNetwork::buildQuadTree()
 {
+	Conf conf;
+	if(conf.readConf())
+	{
+		return -1;
+	}
+
 	cout << "Constructing QuadTree" << endl;
-	qt = new Quadtree(minX, minY, maxX - minX, maxY - minY, 1, 5);
+	qt = new Quadtree(minX, minY, maxX - minX, maxY - minY, 1, conf.QuadTreeLevel);
 	vector<node>::iterator		ivNode;
 	vector<roadInfo>::iterator	ivRoad;
 	map<int, int>::iterator		imNR;
@@ -251,6 +261,8 @@ void RoadNetwork::buildQuadTree()
 		}
 	}
 	cout << "QuadTree finish!" << endl;
+
+    return 0;
 }
 	
 void RoadNetwork::testQuadTree()
@@ -258,9 +270,33 @@ void RoadNetwork::testQuadTree()
 	cout << "Testing QuadTree" << endl;
 	vector<simpleNode> vs;
 	vector<simpleNode>::iterator ivs;
-	vs = qt->GetNodeAt(116.756756431944,40.0338759244444);
-	for(ivs = vs.begin(); ivs != vs.end(); ivs++)
+    vector<int>::iterator ivR;
+    Quadtree *qtt;
+    qtt = qt->NW->SE->NW->SE->SW;
+    for(ivs = qtt->vSimpleNode.begin(); ivs != qtt->vSimpleNode.end(); ivs++)
+    {
+/*		cout << setprecision(15) << (*ivs).x << "\t" << (*ivs).y << "\troadID:";
+        for(ivR = (*ivs).vRoadList.begin(); ivR != (*ivs).vRoadList.end(); ivR++)
+            cout << *ivR << "\t";
+        cout << endl;
+ */   }
+    cout << "region size:" << qtt->vSimpleNode.size() << endl;
+
+	qtt = qt->getRegion(39.9632504625,116.109541320556);
+    cout << "Return region size:" << qtt->vSimpleNode.size() << endl;
+/*	for(ivs = vs.begin(); ivs != vs.end(); ivs++)
 	{
 		cout << setprecision(15) << (*ivs).x << "\t" << (*ivs).y << endl;
-	}
+	}*/
+}
+    
+void RoadNetwork::matchTrajectory(taxiTrajectory tt)
+{
+	vector<trajectoryUnit>::iterator ivTU;
+    Quadtree * qtt;
+    for(ivTU = tt.vTU.begin(); ivTU != tt.vTU.end(); ivTU++)
+    {
+        qtt = qt->getRegion((*ivTU).x, (*ivTU).y);
+        cout << qtt->vSimpleNode.size() << endl;
+    }
 }

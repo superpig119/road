@@ -34,17 +34,16 @@ int Trajectory::readRawTrajectory()
 			vFile.push_back(stmp);
 	}
 
-	for(ivFile = vFile.begin(); ivFile != vFile.end(); ivFile++)
+/*	for(ivFile = vFile.begin(); ivFile != vFile.end(); ivFile++)
 	{
-//		cout << *ivFile << endl;
 		readRawTrajectoryFile(*ivFile);
 	}
 	cout << "File Number:" << vFile.size() << endl;
-
+*/
 	closedir(dp);
 
 //	testTrajectory();
-	//readRawTrajectoryFile(vFile[0]);
+	readRawTrajectoryFile(vFile[0]);
     return 0;
 }
 

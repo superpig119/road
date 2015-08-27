@@ -11,8 +11,8 @@ int main()
 
 //	cout << rn.distanceDijkstra(41,2) << endl;
 
-/*	Trajectory tr;
-	tr.readRawTrajectory();
-*/
+//	Trajectory tr;
+//	tr.readRawTrajectory();
+
 	return 0;
 }

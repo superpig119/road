@@ -6,6 +6,7 @@
 #include <queue>
 #include "conf.h"
 #include "quadtree.h"
+#include "trajectory.h"
 
 using namespace std;
 
@@ -39,12 +40,14 @@ public:
 	Graph		g;
 	double		minX, minY, maxX, maxY;
 	Quadtree*	qt;
+    Trajectory  trajectory;
 
 	int		buildGraph();
 	void	testGraph();
-	void	buildQuadTree();
+    int    	buildQuadTree();
 	void	testQuadTree();
-	void	updateMMXY(int x, int y);//update the min/max XY
+	void	updateMMXY(double x, double y);//update the min/max XY
+    void    matchTrajectory(taxiTrajectory tt);
 
 	float	distanceDijkstra(int ID1, int ID2);
 //	int loadGraph();
