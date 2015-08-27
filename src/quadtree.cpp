@@ -5,7 +5,7 @@
 //  Created by Thor on 27/08/2015.
 //  Copyright (c) 2015 Thor. All rights reserved.
 //
-#include "Quadtree.h"
+#include "quadtree.h"
 
 using namespace std;
 
