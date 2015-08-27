@@ -21,30 +21,30 @@ typedef struct SIMPLENODE
 
 class Quadtree {
 public:
-    Quadtree(double x, double y, double width, double height, int level, int maxLevel);
+	Quadtree(double x, double y, double width, double height, int level, int maxLevel);
     
     ~Quadtree();
     
-    void					AddNode(simpleNode *node);
-    vector<simpleNode*>			GetNodeAt(double x, double y);
-    void					Clear();
+    void AddNode(simpleNode node);
+    vector<simpleNode>	GetNodeAt(double x, double y);
+    void Clear();
     
 private:
-    double					x;
-    double					y;
-    double              width;
-    double              height;
-    int					level;
-    int					maxLevel;
-    vector<simpleNode*>     vSimpleNode;
+    double	x;
+    double	y;
+    double  width;
+    double  height;
+    int		level;
+    int		maxLevel;
+    vector<simpleNode> vSimpleNode;
     
-    Quadtree *				parent;
-    Quadtree *				NW;
-    Quadtree *				NE;
-    Quadtree *				SW;
-    Quadtree *				SE;
+    Quadtree	*parent;
+    Quadtree	*NW;
+    Quadtree 	*NE;
+    Quadtree 	*SW;
+    Quadtree 	*SE;
     
-    bool					contains(Quadtree *child, simpleNode *node);
+    bool contains(Quadtree* child, simpleNode node);
 };
 
 #endif

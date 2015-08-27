@@ -19,11 +19,15 @@ maxLevel(_maxLevel)
 {
     if (level == maxLevel)
         return;
-    
-    NW = new Quadtree(x, y, width / 2.0f, height / 2.0f, level+1, maxLevel);
-    NE = new Quadtree(x + width / 2.0f, y, width / 2.0f, height / 2.0f, level+1, maxLevel);
-    SW = new Quadtree(x, y + height / 2.0f, width / 2.0f, height / 2.0f, level+1, maxLevel);
-    SE = new Quadtree(x + width / 2.0f, y + height / 2.0f, width / 2.0f, height / 2.0f, level+1, maxLevel);
+/*    SW =buildQuadtree(x, y, width / 2.0f, height / 2.0f, level + 1, maxLevel);
+    SE = buildQuadtree(x + width / 2.0f, y, width / 2.0f, height / 2.0f, level + 1, maxLevel);
+    NW = buildQuadtree(x, y + height / 2.0f, width / 2.0f, height / 2.0f, level + 1, maxLevel);
+    NE = buildQuadtree(x + width / 2.0f, y + height / 2.0f, width / 2.0f, height / 2.0f, level + 1, maxLevel);
+ */
+    SW = new Quadtree(x, y, width / 2.0f, height / 2.0f, level + 1, maxLevel);
+    SE = new Quadtree(x + width / 2.0f, y, width / 2.0f, height / 2.0f, level + 1, maxLevel);
+    NW = new Quadtree(x, y + height / 2.0f, width / 2.0f, height / 2.0f, level + 1, maxLevel);
+    NE = new Quadtree(x + width / 2.0f, y + height / 2.0f, width / 2.0f, height / 2.0f, level + 1, maxLevel);
 }
 
 Quadtree::~Quadtree()
@@ -37,7 +41,7 @@ Quadtree::~Quadtree()
     delete SE;
 }
 
-void Quadtree::AddNode(simpleNode *node)
+void Quadtree::AddNode(simpleNode node)
 {
     if (level == maxLevel)
     {
@@ -70,12 +74,12 @@ void Quadtree::AddNode(simpleNode *node)
     
 }
 
-vector<simpleNode*> Quadtree::GetNodeAt(double _x, double _y)
+vector<simpleNode> Quadtree::GetNodeAt(double _x, double _y)
 {
     if (level == maxLevel)
         return vSimpleNode;
     
-    vector<simpleNode*> returnNodes, childReturnNodes;
+    vector<simpleNode> returnNodes, childReturnNodes;
     if (!vSimpleNode.empty())
     {
         return  returnNodes;
@@ -85,13 +89,13 @@ vector<simpleNode*> Quadtree::GetNodeAt(double _x, double _y)
     {
         if (_y > y + height / 2.0f && _y < y + height)
         {
-            childReturnNodes = SE->GetNodeAt(_x, _y);
+            childReturnNodes = NE->GetNodeAt(_x, _y);
             returnNodes.insert(returnNodes.end(), childReturnNodes.begin(), childReturnNodes.end());
             return returnNodes;
         }
         else if (_y > y && _y <= y + height / 2.0f)
         {
-            childReturnNodes = NE->GetNodeAt(_x, _y);
+            childReturnNodes = SE->GetNodeAt(_x, _y);
             returnNodes.insert(returnNodes.end(), childReturnNodes.begin(), childReturnNodes.end());
             return returnNodes;
         }
@@ -100,13 +104,13 @@ vector<simpleNode*> Quadtree::GetNodeAt(double _x, double _y)
     {
         if (_y > y + height / 2.0f && _y < y + height)
         {
-            childReturnNodes = SW->GetNodeAt(_x, _y);
+            childReturnNodes = NW->GetNodeAt(_x, _y);
             returnNodes.insert(returnNodes.end(), childReturnNodes.begin(), childReturnNodes.end());
             return returnNodes;
         }
         else if (_y > y && _y <= y + height / 2.0f)
         {
-            childReturnNodes = NW->GetNodeAt(_x, _y);
+            childReturnNodes = SW->GetNodeAt(_x, _y);
             returnNodes.insert(returnNodes.end(), childReturnNodes.begin(), childReturnNodes.end());
             return returnNodes;
         }
@@ -136,12 +140,12 @@ void Quadtree::Clear()
     }
 }
 
-bool Quadtree::contains(Quadtree *child, simpleNode *node)
+bool Quadtree::contains(Quadtree* child, simpleNode node)
 {
-    return	 !(node->x < child->x ||
-               node->y < child->y ||
-               node->x > child->x + child->width  ||
-               node->y > child->y + child->height);
+    return	 !(node.x < child->x ||
+               node.y < child->y ||
+               node.x > child->x + child->width  ||
+               node.y > child->y + child->height);
 //               node->x + node->width < child->x ||
 //               node->y + node->height < child->y ||
 //               node->x + node->width > child->x + child->width ||

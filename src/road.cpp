@@ -89,6 +89,11 @@ int RoadNetwork::buildGraph()
 		return -1;
 	}
 	
+	maxX = 0;
+	maxY = 0;
+	minX = 90;
+	minY = 180;
+
 	ifstream ifile(conf.roadFilePath.c_str());
 	cout << conf.roadFilePath << endl;
 	if(!ifile)
@@ -109,6 +114,7 @@ int RoadNetwork::buildGraph()
 		ifile >> n.ID;
 		ifile >> n.x;
 		ifile >> n.y;
+		updateMMXY(n.x, n.y);
 		g.vNode.push_back(n);
 	}
 
@@ -163,6 +169,7 @@ int RoadNetwork::buildGraph()
 				ss << stmp;
 				ss >> y;
 				ri.vpRoadDetail.push_back(make_pair(x,y));
+				updateMMXY(x, y);
 			}
 		}
 
@@ -171,7 +178,19 @@ int RoadNetwork::buildGraph()
 
 	return 0;
 }
-	
+
+void RoadNetwork::updateMMXY(int x, int y)
+{
+	if(x > maxX)
+		maxX = x;
+	if(x < minX)
+		minX = x;
+	if(y > maxY)
+		maxY = y;
+	if(y < minY)
+		minY = y;
+}
+
 void RoadNetwork::testGraph()
 {
 	vector<node>::iterator ivNode;
@@ -194,5 +213,54 @@ void RoadNetwork::testGraph()
 			}
 		}
 		cout << endl;
+	}
+}
+
+void RoadNetwork::buildQuadTree()
+{
+	cout << "Constructing QuadTree" << endl;
+	qt = new Quadtree(minX, minY, maxX - minX, maxY - minY, 1, 5);
+	vector<node>::iterator		ivNode;
+	vector<roadInfo>::iterator	ivRoad;
+	map<int, int>::iterator		imNR;
+	vector<pair<double, double> >::iterator ivpRD;
+
+	cout << "Building QuadTree with Nodes" << endl;
+	for(ivNode = g.vNode.begin(); ivNode != g.vNode.end(); ivNode++)
+	{
+		simpleNode sn;
+		sn.x = (*ivNode).x;
+		sn.y = (*ivNode).y;
+		for(imNR = (*ivNode).mNeighborRoad.begin(); imNR != (*ivNode).mNeighborRoad.end(); imNR++)
+		{
+			sn.vRoadList.push_back((*imNR).second);
+		}
+		qt->AddNode(sn);
+	}
+		
+	cout << "Building QuadTree with Roads" << endl;
+	for(ivRoad = g.vRoad.begin(); ivRoad != g.vRoad.end(); ivRoad++)
+	{
+		for(ivpRD = (*ivRoad).vpRoadDetail.begin();ivpRD != (*ivRoad).vpRoadDetail.end(); ivpRD++)
+		{
+			simpleNode sn;
+			sn.x = (*ivpRD).first;
+			sn.y = (*ivpRD).second;
+			sn.vRoadList.push_back((*ivRoad).roadID);
+			qt->AddNode(sn);
+		}
+	}
+	cout << "QuadTree finish!" << endl;
+}
+	
+void RoadNetwork::testQuadTree()
+{
+	cout << "Testing QuadTree" << endl;
+	vector<simpleNode> vs;
+	vector<simpleNode>::iterator ivs;
+	vs = qt->GetNodeAt(116.756756431944,40.0338759244444);
+	for(ivs = vs.begin(); ivs != vs.end(); ivs++)
+	{
+		cout << setprecision(15) << (*ivs).x << "\t" << (*ivs).y << endl;
 	}
 }
