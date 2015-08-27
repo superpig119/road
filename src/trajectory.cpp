@@ -36,25 +36,24 @@ int Trajectory::readRawTrajectory()
 
 	for(ivFile = vFile.begin(); ivFile != vFile.end(); ivFile++)
 	{
-		cout << *ivFile << endl;
+//		cout << *ivFile << endl;
 		readRawTrajectoryFile(*ivFile);
 	}
 	cout << "File Number:" << vFile.size() << endl;
 
 	closedir(dp);
 
-	testTrajectory();
+//	testTrajectory();
 	//readRawTrajectoryFile(vFile[0]);
+    return 0;
 }
 
 
 void Trajectory::readRawTrajectoryFile(string filename)
 {
-	cout << "filename:" << filename << endl;
-	string taxiID = filename;
+    string taxiID = filename;
 	taxiID = taxiID.substr(0, taxiID.find("."));
 	filename = cf.rawTrajectoryFolder + filename;
-	cout << "Filename:" << filename << endl;
 	ifstream ifile(filename.c_str());
 	
 	string stmp1, stmp2;
