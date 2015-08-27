@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <queue>
 #include "conf.h"
+#include "quadtree.h"
 
 using namespace std;
 
