@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <algorithm>
 #include <queue>
+#include <math.h>
 #include "conf.h"
 #include "quadtree.h"
 #include "trajectory.h"
@@ -47,9 +48,13 @@ public:
     int    	buildQuadTree();
 	void	testQuadTree();
 	void	updateMMXY(double x, double y);//update the min/max XY
-    void    matchTrajectory(taxiTrajectory tt);
+    void    matchTrajectory();
 
 	float	distanceDijkstra(int ID1, int ID2);
+	
+	void	posMatchRoad(double px, double py, vector<int>& vRoadList, double &x, double &y);
+	double	nodeDist(double x1, double y1, double x2, double y2);
+	
 //	int loadGraph();
 //	int writeGraph();
 };
