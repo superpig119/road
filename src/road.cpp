@@ -290,25 +290,44 @@ void RoadNetwork::testQuadTree()
 	}*/
 }
     
-void RoadNetwork::matchTrajectory()
+void RoadNetwork::attachTrajectory()
 {
-	taxiTrajectory tt = trajectory.vTrajectory[0];
-	vector<trajectoryUnit>::iterator ivTU;
-    Quadtree * qtt;
-	ivTU = tt.vTU.begin();
-	vector<int> vRoadList;
-	double x, y;
-	posMatchRoad((*ivTU).x, (*ivTU).y, vRoadList, x, y);
-	cout << "Trajectory Coordinate:" << (*ivTU).x << "\t" << (*ivTU).y  << endl;
-	cout << "Road ID:" << vRoadList[0] << endl;
-	cout << setprecision(15) << "Node on Road:" << x << "\t" << y << endl;
+ 	vector<taxiTrajectory>::iterator ivT;
+	for(ivT = trajectory.vTrajectory.begin(); ivT != trajectory.vTrajectory.end(); ivT++)
+	{
+		for(ivTU = (*ivT).vTU.begin(); ivTU != (*ivT).vTU.end(); ivTU++)
+		{
+			posMatchRoad((*ivTU).x, (*ivTU).y, vRoadList, x, y);
+			cout << "Trajectory Coordinate:" << (*ivTU).x << "\t" << (*ivTU).y  << endl;
+			cout << "Road ID:" << vRoadList[0] << endl;
+			cout << setprecision(15) << "Node on Road:" << x << "\t" << y << endl;
+			break;	//Test for the first trajectory
+		}
+
+		
+		break;	//Test for the first trajectory
+	}
+
 	/*
+	Quadtree * qtt;
     for(ivTU = tt.vTU.begin(); ivTU != tt.vTU.end(); ivTU++)
     {
         qtt = qt->getRegion((*ivTU).x, (*ivTU).y);
         cout << qtt->vSimpleNode.size() << endl;
     }
 	*/
+}
+
+void RoadNetwork::matchTrajectory(vector<trajectoryUnit> vTU)
+{
+	vector<int> vRoadList;
+	double x, y, xtmp, ytmp;
+	vector<trajectoryUnit>::iterator ivTU;
+	for(ivTU = (*ivT).vTU.begin(); ivTU != (*ivT).vTU.end(); ivTU++)
+	{
+		posMatchRoad((*ivTU).x, (*ivTU).y, vRoadList, x, y);
+	}
+	
 }
 
 double RoadNetwork::nodeDist(double x1, double y1, double x2, double y2)
@@ -334,5 +353,4 @@ void RoadNetwork::posMatchRoad(double px, double py, vector<int>& vRoadList, dou
 			vRoadList = (*ivSN).vRoadList;
 		}
 	}
-
 }

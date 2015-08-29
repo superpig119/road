@@ -13,7 +13,7 @@ int main()
 
 //	Trajectory tr;
 	rn.trajectory.readRawTrajectory();
-	rn.matchTrajectory();
+	rn.attachTrajectory();
 
 	return 0;
 }
