@@ -293,39 +293,76 @@ void RoadNetwork::testQuadTree()
 void RoadNetwork::attachTrajectory()
 {
  	vector<taxiTrajectory>::iterator ivT;
+	vector<trajectoryUnit>::iterator ivTU;
 	for(ivT = trajectory.vTrajectory.begin(); ivT != trajectory.vTrajectory.end(); ivT++)
 	{
-		for(ivTU = (*ivT).vTU.begin(); ivTU != (*ivT).vTU.end(); ivTU++)
-		{
-			posMatchRoad((*ivTU).x, (*ivTU).y, vRoadList, x, y);
+//		for(ivTU = (*ivT).vTU.begin(); ivTU != (*ivT).vTU.end(); ivTU++)
+//		{
+/*			posMatchRoad((*ivTU).x, (*ivTU).y, vRoadList, x, y);
 			cout << "Trajectory Coordinate:" << (*ivTU).x << "\t" << (*ivTU).y  << endl;
 			cout << "Road ID:" << vRoadList[0] << endl;
-			cout << setprecision(15) << "Node on Road:" << x << "\t" << y << endl;
-			break;	//Test for the first trajectory
-		}
+			cout << setprecision(15) << "Node on Road:" << x << "\t" << y << endl;*/
+            matchTrajectory(*ivT);
+//			break;	//Test for the first trajectory
+//		}
 
-		
 		break;	//Test for the first trajectory
 	}
-
-	/*
-	Quadtree * qtt;
-    for(ivTU = tt.vTU.begin(); ivTU != tt.vTU.end(); ivTU++)
-    {
-        qtt = qt->getRegion((*ivTU).x, (*ivTU).y);
-        cout << qtt->vSimpleNode.size() << endl;
-    }
-	*/
 }
 
-void RoadNetwork::matchTrajectory(vector<trajectoryUnit> vTU)
+void RoadNetwork::matchTrajectory(taxiTrajectory &tt)
 {
-	vector<int> vRoadList;
+	vector<int> vRoadList, vRoadListtmp;
 	double x, y, xtmp, ytmp;
+    struct tm t, ttmp;
 	vector<trajectoryUnit>::iterator ivTU;
-	for(ivTU = (*ivT).vTU.begin(); ivTU != (*ivT).vTU.end(); ivTU++)
+    vector<roadTrajectory>::iterator ivRT;
+
+	int count = 0;
+    int roadID;
+    bool RL1 = true;
+    for(ivTU = tt.vTU.begin(); ivTU != tt.vTU.end(); ivTU++)
 	{
 		posMatchRoad((*ivTU).x, (*ivTU).y, vRoadList, x, y);
+        roadID = vRoadList[0];
+        if(count == 0)
+        {
+            if(vRoadList.size() == 1)
+            {
+                roadTrajectory rT;
+                roadTrajectoryUnit rTU;
+                rTU.x = x;
+                rTU.y = y;
+                rTU.t = (*ivTU).t;
+                rT.vRoadTrajectoryUnit.push_back(rTU);
+                g.vRoad[roadID].vRoadTrajectory.push_back(rT);
+                RL1 = true;
+            }
+            else
+            {
+                xtmp = x;
+                ytmp = y;
+                vRoadListtmp = vRoadList;
+                ttmp = t;
+                RL1 = false;
+            }
+        }
+        else if(count == 1)
+        {
+            if(RL1)
+            {
+                ivRT = g.vRoad[roadID].vRoadTrajectory.end() - 1;
+                double d1 = nodeDist((*ivRT).vRoadTrajectoryUnit[0].x, (*ivRT).vRoadTrajectoryUnit[0].y, g.vNode[g.vRoad[roadID].ID1].x, g.vNode[g.vRoad[roadID].ID1].y);
+                double d2 = nodeDist(x, y, g.vNode[g.vRoad[roadID].ID2].x, g.vNode[g.vRoad[roadID].ID2].y);
+                if(d1 < d2)
+                    (*ivRT).direction = 0;
+                else 
+                    (*ivRT).direction = 1;
+            }
+        }
+        else
+        {
+        }
 	}
 	
 }

@@ -65,7 +65,7 @@ public:
 	void	updateMMXY(double x, double y);//update the min/max XY
 
     void    attachTrajectory();	//Attach the trajectory to the road
-	void	matchTrajectory(vector<trajectoryUnit> vTU);
+	void	matchTrajectory(taxiTrajectory &tt);
 	void	posMatchRoad(double px, double py, vector<int>& vRoadList, double &x, double &y);
 	double	nodeDist(double x1, double y1, double x2, double y2);
 
