@@ -22,8 +22,6 @@ int Trajectory::readRawTrajectory()
 						
 	stringstream ss;
 	string stmp;
-	vector<string> vFile;
-	vector<string>::iterator ivFile;
 	while((dirp = readdir(dp)) != NULL)
 	{
 		ss.clear();
@@ -34,14 +32,11 @@ int Trajectory::readRawTrajectory()
 			vFile.push_back(stmp);
 	}
 
-	int i = 0;
-	for(ivFile = vFile.begin(); ivFile != vFile.end(); ivFile++, i++)
-	{
-		cout << endl << "Analyzing File NO." << i << endl;
-		readRawTrajectoryFile(*ivFile);
-	}
+/*	int i = 0;
 	cout << "File Number:" << vFile.size() << endl;
-
+*/
+	ivFile = vFile.begin();
+	count = 0;
 	closedir(dp);
 
 //	testTrajectory();
@@ -49,6 +44,17 @@ int Trajectory::readRawTrajectory()
     return 0;
 }
 
+bool Trajectory::readNextTrajectory()
+{
+	if(ivFile == vFile.end())
+		return false;
+	cout << endl << "Analyzing File NO." << count << endl;
+	count++;
+	readRawTrajectoryFile(*ivFile);
+	ivFile++;
+
+	return true;
+}
 
 void Trajectory::readRawTrajectoryFile(string filename)
 {

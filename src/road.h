@@ -9,6 +9,7 @@
 #include "conf.h"
 #include "quadtree.h"
 #include "trajectory.h"
+#include <pthread.h>
 
 using namespace std;
 
@@ -86,6 +87,7 @@ public:
 	int		readRoadSpeed();
 
 	float	distanceDijkstra(int ID1, int ID2, vector<int>& vRoadList);
+	double	distanceDijkBetween2Pair(int n11, int n12, double rLength, int n21, int n22, int &type, vector<int> &vRoadList);
 	double	distanceAnyNodePair(double x1, double y1, double x2, double y2, vector<int>& vRoadList, vector<double> &vLength);	//return distance between any two points and the road segments involved, and the length
 	void	distanceToEnds(double x, double y, int roadID, double &d1, double &d2);	//d1 distance to ID1, d2 distance to ID2
 	double	pointToRoadDist(double px, double py, double rx1, double ry1, double rx2, double ry2);	//dist from px,py to road, return large number if px,py is not on road segment

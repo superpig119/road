@@ -4,7 +4,7 @@
 
 typedef struct heap
 {
-	pair<int, float> pif;
+	pair<int, float> pif;//ID, distance
 	bool operator < (const struct heap &a) const  
 	{  
 		return pif.second > a.pif.second; 
@@ -255,15 +255,19 @@ void RoadNetwork::attachTrajectory()
  	vector<taxiTrajectory>::iterator ivT;
 	vector<trajectoryUnit>::iterator ivTU;
 	int i;
-	for(ivT = trajectory.vTrajectory.begin(); ivT != trajectory.vTrajectory.end(); ivT++, i++)
+	while(trajectory.readNextTrajectory())
 	{
-		cout << endl << "Analyzing Trajectory No." << i << endl << endl;;
+		for(ivT = trajectory.vTrajectory.begin(); ivT != trajectory.vTrajectory.end(); ivT++, i++)
+		{
+			cout << endl << "Analyzing Trajectory No." << i << endl << endl;;
 /*		for(ivTU = (*ivT).vTU.begin(); ivTU != (*ivT).vTU.end(); ivTU++)
 		{
 			cout << setprecision(15) << (*ivTU).x << "," << (*ivTU).y << "," << ctime(&(*ivTU).t) << endl;
 		}*/
-		trajectoryMatchRoads(*ivT, i);
-//		break;	//Test for the first trajectory
+			trajectoryMatchRoads(*ivT, i);
+			break;	//Test for the first trajectory
+		}
+		trajectory.vTrajectory.clear();
 	}
 }
 
@@ -376,31 +380,6 @@ double RoadNetwork::nodeDist(double x1, double y1, double x2, double y2)
 {
 	return sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2));
 }
-	
-/*
-void RoadNetwork::testAttachTrajectory(set<int> sRoad)
-{
-	set<int>::iterator isRoad;
-	vector<roadTrajectoryUnit>::iterator ivTU;
-    vector<roadTrajectory>::iterator ivRT;
-	for(isRoad = sRoad.begin(); isRoad != sRoad.end(); isRoad++)
-	{
-		ivRT = g.vRoad[*isRoad].vRoadTrajectory.end() - 1;
-		if((*ivRT).vRoadTrajectoryUnit.size() == 1)
-		{
-			cout << setprecision(15) << *isRoad << "\t" << (*ivRT).vRoadTrajectoryUnit[0].x << "," << (*ivRT).vRoadTrajectoryUnit[0].y;
-		}
-		else
-		{
-			cout << (*isRoad) << "\t";
-			for(ivTU = (*ivRT).vRoadTrajectoryUnit.begin(); ivTU != (*ivRT).vRoadTrajectoryUnit.end(); ivTU++)
-			{
-				cout << setprecision(15) << (*ivTU).x << "," << (*ivTU).y << "," << ctime(&(*ivTU).t) << "\t";
-			}
-		}
-		cout << endl;
-	}
-}*/
 
 void RoadNetwork::testRoadSpeed()
 {
@@ -537,10 +516,121 @@ float RoadNetwork::distanceDijkstra(int ID1, int ID2, vector<int> &vRoadList)
 	return vDistance[ID2];
 }
 	
+/*Find the shortest path between 2 road's 2 end nodes;
+ * n11:ID1 of road1, n12:ID2 of road1
+ * n21:ID1 of road2, n22:ID2 of road2
+ * Calculate the distance from n11 to n21 & n22
+ * Find the short one and test the path
+ * if the path include n12, then n12 is the shortest
+ * else n11 is the shortest
+ * Return type:[0]n11&n21 [1]n12&n21
+ *			   [2]n11&n22 [3]n127n22
+ */
+double RoadNetwork::distanceDijkBetween2Pair(int n11, int n12, double rLength, int n21, int n22, int &type, vector<int> &vRoadList)
+{
+	map<int, float> mDistance;
+	map<int, int>	mPrevious;
+	
+	map<int, float>::iterator	imD;
+	map<int, int>::iterator		imP;
+	vector<node>::iterator		ivNode;
+	map<int, float>::iterator	imNL;
+
+	for(ivNode = g.vNode.begin(); ivNode != g.vNode.end(); ivNode++)
+	{
+		if(nodeDist((*ivNode).x, (*ivNode).y, g.vNode[n11].x, g.vNode[n11].y) < 1000)
+		{
+			mDistance[(*ivNode).ID] = INF;
+			mPrevious[(*ivNode).ID] = -1;
+		}
+	}
+
+	priority_queue<h> qh;
+	mDistance[n11] = 0;
+	for(imNL = g.vNode[n11].mNeighborLength.begin(); imNL != g.vNode[n11].mNeighborLength.end(); imNL++)
+	{
+		mDistance[(*imNL).first] = (*imNL).second;
+		h hh;
+		hh.pif = make_pair((*imNL).first, (*imNL).second);
+		qh.push(hh);
+		mPrevious[(*imNL).first] = n11;
+	}
+
+	pair<int, float> pu;
+	while(!qh.empty())
+	{
+		pu = qh.top().pif;
+		qh.pop();
+		for(imNL = g.vNode[pu.first].mNeighborLength.begin(); imNL != g.vNode[pu.first].mNeighborLength.end(); imNL++)
+		{
+			if(mDistance.find(((*imNL).first)) == mDistance.end())
+				continue;
+
+			if(mDistance[(*imNL).first] == INF && (*imNL).first != n11)
+			{
+				float d = mDistance[pu.first] + (*imNL).second;
+				mDistance[(*imNL).first] = d;
+				h hh;
+				hh.pif = make_pair((*imNL).first, d);
+				qh.push(hh);
+				mPrevious[(*imNL).first] = pu.first;
+			}
+			else if(mDistance[(*imNL).first] > mDistance[pu.first] + (*imNL).second)
+			{
+				mDistance[(*imNL).first] = mDistance[pu.first] + (*imNL).second;
+				mPrevious[(*imNL).first] = pu.first;
+			}
+		}
+	}
+	
+	int id;
+	int idtmp ;
+	double dist;
+	vector<int> vRoadListtmp;
+	vector<int>::reverse_iterator irvRL;
+	if(mDistance[n21] < mDistance[n22])
+	{
+		dist = mDistance[n21];
+		cout << "NODE2:" << g.vNode[n21].x << "," << g.vNode[n21].y << endl;
+		id = n21;
+		type = 0;
+	}
+	else
+	{
+		dist = mDistance[n22];
+		cout << "NODE2:" << g.vNode[n22].x << "," << g.vNode[n22].y << endl;
+		id = n22;
+		type = 2;
+	}
+
+	vector<int> vNodeList;
+	if(mDistance[id] != INF)
+	{	
+		while(id != n11)
+		{
+			idtmp = mPrevious[id];
+			if(idtmp == n12)
+			{
+				type++;
+				dist -= rLength;
+			}
+			vRoadListtmp.push_back(g.vNode[id].mNeighborRoad[idtmp]);
+			id = idtmp;
+		}
+	}
+
+	for(irvRL = vRoadListtmp.rbegin(); irvRL != vRoadListtmp.rend(); irvRL++)
+	{
+		vRoadList.push_back(*irvRL);
+	}
+
+	return dist;
+}
+	
 double RoadNetwork::distanceAnyNodePair(double x1, double y1, double x2, double y2, vector<int>& vRoadList, vector<double> &vLength)
 {
 	double sourceX, sourceY, desX, desY;
-	vector<int> vRoadListtmp1, vRoadListtmp2;
+	vector<int> vRoadListtmp;
 	vector<int>::iterator ivR;
 	int roadID1, roadID2;
 	int sourceID, desID;
@@ -561,12 +651,13 @@ double RoadNetwork::distanceAnyNodePair(double x1, double y1, double x2, double 
 	}
 	else
 	{
-//		cout << "From " << x1 << "," << y1 << " to " << x2 << "," << y2 << endl;
-//		cout << "Node1 attach to " << sourceX << "," << sourceY << endl;
-//		cout << "Node2 attach to " << desX << "," << desY << endl;
-//		cout << "ID11:" << g.vRoad[roadID1].ID1 << endl;
-//		cout << "ID21:" << g.vRoad[roadID2].ID1 << endl;
-		d = distanceDijkstra(g.vRoad[roadID1].ID1, g.vRoad[roadID2].ID1, vRoadListtmp1);
+		cout << "From " << x1 << "," << y1 << " to " << x2 << "," << y2 << endl;
+		cout << "Node1 attach to " << sourceX << "," << sourceY << endl;
+		cout << "Node2 attach to " << desX << "," << desY << endl;
+		cout << "ID11:" << g.vRoad[roadID1].ID1 << endl;
+		cout << "ID21:" << g.vRoad[roadID2].ID1 << endl;
+		d = distanceDijkBetween2Pair(g.vRoad[roadID1].ID1, g.vRoad[roadID1].ID2, g.vRoad[roadID1].length, g.vRoad[roadID2].ID1, g.vRoad[roadID2].ID2, c, vRoadListtmp);
+/*		d = distanceDijkstra(g.vRoad[roadID1].ID1, g.vRoad[roadID2].ID1, vRoadListtmp1);
 		c = 0;
 		dtmp = distanceDijkstra(g.vRoad[roadID1].ID2, g.vRoad[roadID2].ID1, vRoadListtmp2);
 		if(dtmp < d)
@@ -591,10 +682,11 @@ double RoadNetwork::distanceAnyNodePair(double x1, double y1, double x2, double 
 			d = dtmp;
 			vRoadListtmp1 = vRoadListtmp2;
 			c = 3;
-		}
+		}*/
 
 		distanceToEnds(x1, y1, roadID1, ds1, ds2);
 		distanceToEnds(x2, y2, roadID2, dd1, dd2);
+		cout << "Distance1:" << d << endl;
 
 		double dstart, dend;
 
@@ -627,9 +719,13 @@ double RoadNetwork::distanceAnyNodePair(double x1, double y1, double x2, double 
 			dend = dd2;
 		}
 		
+		cout << "ds1:" << ds1 << endl;
+		cout << "ds2:" << ds2 << endl;
+		cout << "dd1:" << dd1 << endl;
+		cout << "dd2:" << dd2 << endl;
 		vLength.push_back(dstart);
 		vRoadList.push_back(roadID1);
-		for(ivR = vRoadListtmp1.begin(); ivR != vRoadListtmp1.end(); ivR++)
+		for(ivR = vRoadListtmp.begin(); ivR != vRoadListtmp.end(); ivR++)
 		{
 			vRoadList.push_back(*ivR);
 			vLength.push_back(g.vRoad[*ivR].length);
@@ -637,7 +733,7 @@ double RoadNetwork::distanceAnyNodePair(double x1, double y1, double x2, double 
 		vRoadList.push_back(roadID2);
 		vLength.push_back(dend);
 		
-//		cout << "Distance:" << d << endl;
+		cout << "Distance2:" << d << endl;
 //		cout << endl;
 	}
 	return d;
