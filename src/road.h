@@ -81,6 +81,7 @@ public:
 	void	posMatchRoad(double px, double py, int &roadID, double &x, double &y);
 	void	nearestTwoNodeOnRoad(int roadID, double px, double py, double &x1, double &y1, double &x2, double &y2);
 	double	nodeDist(double x1, double y1, double x2, double y2);
+	void	findNStepNeighbor(int nodeID, int N, map<int, float> &mNeighbor, map<int, int> &mPrevious);
 	void	testAttachTrajectory(set<int> sRoad);
 	void	testRoadSpeed();
 	int		writeRoadSpeed();
