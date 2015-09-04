@@ -43,7 +43,8 @@ typedef struct ROAD
 //	vector<roadTrajectory> vRoadTrajectory;		//The trajectory attached to this road
 //	map<road_time, double>	mInboundV;	//From ID1 to ID2, time and speed
 //	map<road_time, double>	mOutboundV;	//From ID2 to ID1
-	map<road_time, double>	mTV;
+//	map<road_time, double>	mTV;
+	map<int, double>	mTV;	//time, speed
 }roadInfo;
 
 typedef struct NODE

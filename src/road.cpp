@@ -303,17 +303,25 @@ void RoadNetwork::trajectoryMatchRoads(taxiTrajectory &tt, int i)
 			cout << "roadID:" << *ivR << "\t"  << g.vNode[g.vRoad[*ivR].ID1].ID << ": " << g.vNode[g.vRoad[*ivR].ID1].x << "," << g.vNode[g.vRoad[*ivR].ID1].y << "\t" << g.vNode[g.vRoad[*ivR].ID2].ID << ": " << g.vNode[g.vRoad[*ivR].ID2].x << "," << g.vNode[g.vRoad[*ivR].ID2].y << endl;
 		}
 		cout << endl;*/
-		road_time tt;
+//		road_time tt;
 		struct tm * ptm;
 		ptm = gmtime(&((*ivTU).t));
-		tt.hour = ptm->tm_hour;
+/*		tt.hour = ptm->tm_hour;
 		tt.minute = ptm->tm_min;
-		tt.second = ptm->tm_sec;
+		tt.second = ptm->tm_sec;*/
+		int t = 0;
+		t += ptm->tm_hour * 3600;
+		t += ptm->tm_min * 60;
+		t += ptm->tm_sec;
 		for(ivR = vRoadList.begin(), ivL = vLength.begin(); ivR != vRoadList.end(); ivR++, ivL++)
 		{
-			g.vRoad[*ivR].mTV[tt] = v;
+			g.vRoad[*ivR].mTV[t] = v;
+//			cout << (*ivR) << "\t" << g.vRoad[*ivR].ID1 << "\t" << g.vRoad[*ivR].ID2 << endl;
 			ts = 30 * (*ivL / distance);
-			tt = addTime(tt, ts);
+//			tt = addTime(tt, ts);
+			t = ts + t;
+			if(t > 86399)
+				t-=86399;
 		}
 		vRoadList.clear();
 		vLength.clear();
@@ -388,7 +396,8 @@ double RoadNetwork::nodeDist(double x1, double y1, double x2, double y2)
 void RoadNetwork::testRoadSpeed()
 {
 	vector<roadInfo>::iterator ivR;
-	map<road_time, double>::iterator imTV;
+//	map<road_time, double>::iterator imTV;
+	map<int, double>::iterator imTV;
 	for(ivR = g.vRoad.begin(); ivR != g.vRoad.end(); ivR++)
 	{
 		if(!(*ivR).mTV.empty())
@@ -396,7 +405,8 @@ void RoadNetwork::testRoadSpeed()
 			cout << "Road ID:" << (*ivR).roadID << endl;;
 			for(imTV = (*ivR).mTV.begin(); imTV != (*ivR).mTV.end(); imTV++)
 			{
-				cout <<	(*imTV).first.hour << ":" << (*imTV).first.minute << ":" << (*imTV).first.second << "\t" << (*imTV).second << endl;
+		//		cout <<	(*imTV).first.hour << ":" << (*imTV).first.minute << ":" << (*imTV).first.second << "\t" << (*imTV).second << endl;
+				cout << (*imTV).first << "\t" << (*imTV).second << endl;
 			}
 		}
 	}
@@ -420,7 +430,8 @@ void RoadNetwork::findNStepNeighbor(int nodeID, int N, map<int, float> &mDistanc
 int RoadNetwork::writeRoadSpeed()
 {
 	vector<roadInfo>::iterator ivR;
-	map<road_time, double>::iterator imTV;
+	//map<road_time, double>::iterator imTV;
+	map<int, double>::iterator imTV;
 	ofstream outFile("speed");
 	for(ivR = g.vRoad.begin(); ivR != g.vRoad.end(); ivR++)
 	{
@@ -429,7 +440,8 @@ int RoadNetwork::writeRoadSpeed()
 			outFile << (*ivR).roadID << "\t" << (*ivR).mTV.size() << endl;
 			for(imTV = (*ivR).mTV.begin(); imTV != (*ivR).mTV.end(); imTV++)
 			{
-				outFile <<	(*imTV).first.hour << "\t" << (*imTV).first.minute << "\t" << (*imTV).first.second << "\t" << (*imTV).second << endl;
+		//		outFile <<	(*imTV).first.hour << "\t" << (*imTV).first.minute << "\t" << (*imTV).first.second << "\t" << (*imTV).second << endl;
+				outFile << (*imTV).first << "\t" << (*imTV).second << endl;
 			}
 		}
 	}
@@ -441,15 +453,17 @@ int	RoadNetwork::readRoadSpeed()
 	int roadID;
 	int num, i;
 	double v;
+	int t;
 	while(ifile >> roadID)
 	{
 		ifile >> num;
 		for(i = 0; i < num; i++)
 		{
-			road_time t;
-			ifile >> t.hour;
-			ifile >> t.minute;
-			ifile >> t.second;
+		//	road_time t;
+		//	ifile >> t.hour;
+		//	ifile >> t.minute;
+		//	ifile >> t.second;
+			ifile >> t;
 			ifile >> v;
 			g.vRoad[roadID].mTV[t] = v;
 		}
@@ -681,6 +695,8 @@ double RoadNetwork::distanceAnyNodePair(double x1, double y1, double x2, double 
 		cout << "ID21:" << g.vRoad[roadID2].ID1 << endl;
 		cout << "ID21 coor:" << g.vNode[g.vRoad[roadID2].ID1].x << "," << g.vNode[g.vRoad[roadID2].ID1].y << endl;
 		cout << "ID22:" << g.vRoad[roadID2].ID2 << endl;
+			
+
 		d = distanceDijkBetween2Pair(g.vRoad[roadID1].ID1, g.vRoad[roadID1].ID2, g.vRoad[roadID1].length, g.vRoad[roadID2].ID1, g.vRoad[roadID2].ID2, c, vRoadListtmp);
 
 		distanceToEnds(x1, y1, roadID1, ds1, ds2);
@@ -732,7 +748,7 @@ double RoadNetwork::distanceAnyNodePair(double x1, double y1, double x2, double 
 		vRoadList.push_back(roadID2);
 		vLength.push_back(dend);
 		
-		cout << "Distance2:" << d << endl;
+		cout << "Distance3:" << d << endl;
 //		cout << endl;
 	}
 	return d;
@@ -749,7 +765,12 @@ void RoadNetwork::distanceToEnds(double x, double y, int roadID, double &d1, dou
 	double dtmp, dtmp1, dtmp2;	//distance from x,y to two ends of the segment
 	double dmin = 9999999;
 	double dsum = 0;//sum of dpart
-	double dpart;	//distance of each segment
+	double dpart;	//distance of each segmenta
+	if(g.vRoad[roadID].vpRoadDetail.size() == 0)
+	{
+		cout << "roadDetail size:" << g.vRoad[roadID].vpRoadDetail.size();
+		cout << g.vRoad[roadID].ID1 << " " << g.vRoad[roadID].ID2 << endl;
+	}
 	for(ivpRD = g.vRoad[roadID].vpRoadDetail.begin(); ivpRD != g.vRoad[roadID].vpRoadDetail.end() - 1; ivpRD++, i++)
 	{
 		dpart = nodeDist((*ivpRD).first, (*ivpRD).second, (*(ivpRD + 1)).first, (*(ivpRD + 1)).second);
@@ -767,24 +788,24 @@ void RoadNetwork::distanceToEnds(double x, double y, int roadID, double &d1, dou
 		}
 	}
 
-//	cout << "dsum:" << dsum << endl;
+	cout << "dsum:" << dsum << endl;
 	d1 = d2 = 0;
-//	cout << "Road Length:" << g.vRoad[roadID].length << endl;
-//	cout << "Road ID1:" << g.vNode[g.vRoad[roadID].ID1].x << "," << g.vNode[g.vRoad[roadID].ID1].y << endl;
-//	cout << "Road ID2:" << g.vNode[g.vRoad[roadID].ID2].x << "," << g.vNode[g.vRoad[roadID].ID2].y << endl;
+	cout << "Road Length:" << g.vRoad[roadID].length << endl;
+	cout << "Road ID1:" << g.vNode[g.vRoad[roadID].ID1].x << "," << g.vNode[g.vRoad[roadID].ID1].y << endl;
+	cout << "Road ID2:" << g.vNode[g.vRoad[roadID].ID2].x << "," << g.vNode[g.vRoad[roadID].ID2].y << endl;
 	for(i = 0; i < pos; i++)
 	{
 		d1 += g.vRoad[roadID].length * vLength[i] / dsum;
 	}
 	d1 += g.vRoad[roadID].length * dp1 / dsum;
-//	cout << "d1:" << d1 << endl;
+	cout << "d1:" << d1 << endl;
 	
 	d2 = g.vRoad[roadID].length * dp2 / dsum;
 	for(i = pos + 1; i < vLength.size(); i++)
 	{
 		d2 += g.vRoad[roadID].length * vLength[i] / dsum;
 	}
-//	cout << "d2:" << d2 << endl;
+	cout << "d2:" << d2 << endl;
 }
 
 double RoadNetwork::pointToRoadDist(double px, double py, double rx1, double ry1, double rx2, double ry2)
