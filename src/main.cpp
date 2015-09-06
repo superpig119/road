@@ -14,7 +14,7 @@ int main()
 //	Trajectory tr;
 	rn.trajectory.readRawTrajectory();
 	rn.attachTrajectory();
-	rn.writeRoadSpeed();
+//	rn.writeRoadSpeed();
 //	rn.readRoadSpeed();
 //	rn.testRoadSpeed();
 

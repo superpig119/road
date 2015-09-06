@@ -268,10 +268,12 @@ void RoadNetwork::attachTrajectory()
 		{
 			cout << setprecision(15) << (*ivTU).x << "," << (*ivTU).y << "," << ctime(&(*ivTU).t) << endl;
 		}*/
+			trajectory.testTrajectory();
 			trajectoryMatchRoads(*ivT, i);
-//			break;	//Test for the first trajectory
+			break;	//Test for the first trajectory
 		}
 		trajectory.vTrajectory.clear();
+		break;
 	}
 }
 
@@ -289,20 +291,46 @@ void RoadNetwork::trajectoryMatchRoads(taxiTrajectory &tt, int i)
 	vector<trajectoryUnit>::iterator ivTU;
     vector<roadTrajectory>::iterator ivRT;
 	int j = 0;
+	int timedif;
     for(ivTU = tt.vTU.begin(); ivTU != tt.vTU.end() - 1; ivTU++, j++)
 	{
 		if(j % 30 == 0)
 			cout << endl << "Trajectory " << i << endl << endl;;
 		distance = distanceAnyNodePair((*ivTU).x, (*ivTU).y, (*(ivTU + 1)).x, (*(ivTU + 1)).y, vRoadList, vLength);
-		v = distance / 30;
-		cout << "distance:" << distance << endl;
-		cout << "v:" << v << endl;
-/*		cout << setprecision(15) << "From " << (*ivTU).x << "," << (*ivTU).y << " to " << (*(ivTU+1)).x << "," << (*(ivTU+1)).y << endl;
-		for(ivR = vRoadList.begin(); ivR != vRoadList.end(); ivR++)
+		time_t t1, t2;
+		t1 = (*(ivTU+1)).t;
+		t2 = (*ivTU).t;
+		cout << ctime(&t1);
+		cout << ctime(&t2);
+		cout << setprecision(15) << (*ivTU).x << "\t" <<  (*ivTU).y << "\t" << (*(ivTU + 1)).x << "\t" << (*(ivTU + 1)).y << "\t" << ctime(&((*ivTU).t)) << "\t" << ctime(&t1) << "\t" << distance<< endl;
+		timedif = difftime(t1, t2);
+		v = distance / timedif;
+		cout << "distance:" << distance << "\ttime:" << timedif << endl;
+		cout << timedif << endl;
+		if(distance > nodeDist((*ivTU).x, (*ivTU).y, (*(ivTU+1)).x, (*(ivTU+1)).y) + 100)
 		{
-			cout << "roadID:" << *ivR << "\t"  << g.vNode[g.vRoad[*ivR].ID1].ID << ": " << g.vNode[g.vRoad[*ivR].ID1].x << "," << g.vNode[g.vRoad[*ivR].ID1].y << "\t" << g.vNode[g.vRoad[*ivR].ID2].ID << ": " << g.vNode[g.vRoad[*ivR].ID2].x << "," << g.vNode[g.vRoad[*ivR].ID2].y << endl;
+			vRoadList.clear();
+			vLength.clear();
+			continue;
 		}
-		cout << endl;*/
+		cout << "v:" << v << endl;
+/*		if(v > 50)
+		{
+			cout << setprecision(15) << "From " << (*ivTU).x << "," << (*ivTU).y << " to " << (*(ivTU+1)).x << "," << (*(ivTU+1)).y << endl;
+			for(ivR = vRoadList.begin(); ivR != vRoadList.end(); ivR++)
+			{
+				cout << "roadID:" << *ivR << "\t"  << g.vNode[g.vRoad[*ivR].ID1].ID << ": " << g.vNode[g.vRoad[*ivR].ID1].x << "," << g.vNode[g.vRoad[*ivR].ID1].y << "\t" << g.vNode[g.vRoad[*ivR].ID2].ID << ": " << g.vNode[g.vRoad[*ivR].ID2].x << "," << g.vNode[g.vRoad[*ivR].ID2].y << endl;
+			}
+			cout << endl;
+			int a;
+			cin >>a; 
+		}*/
+		if(v > 45)
+		{
+			vRoadList.clear();
+			vLength.clear();
+			continue;
+		}
 //		road_time tt;
 		struct tm * ptm;
 		ptm = gmtime(&((*ivTU).t));
@@ -313,16 +341,24 @@ void RoadNetwork::trajectoryMatchRoads(taxiTrajectory &tt, int i)
 		t += ptm->tm_hour * 3600;
 		t += ptm->tm_min * 60;
 		t += ptm->tm_sec;
+		ofstream oFile("speed", ios::app);
+		oFile << setprecision(15) << (*ivTU).x << "\t" <<  (*ivTU).y << "\t" << (*(ivTU + 1)).x << "\t" << (*(ivTU + 1)).y << "\t" << ctime(&((*ivTU).t)) << "\t" << ctime(&((*(ivTU+1)).t)) << "\t" << timedif << endl;
 		for(ivR = vRoadList.begin(), ivL = vLength.begin(); ivR != vRoadList.end(); ivR++, ivL++)
 		{
-			g.vRoad[*ivR].mTV[t] = v;
+			if(ivR != vRoadList.begin() && (*ivR == *(ivR-1)))
+			{
+				continue;
+			}
+			oFile << setprecision(15) << *ivR << "\t" << t << "\t" << v << "\t" << g.vNode[g.vRoad[*ivR].ID1].x << "\t" << g.vNode[g.vRoad[*ivR].ID1].y << "\t" << g.vNode[g.vRoad[*ivR].ID2].x << "\t" << g.vNode[g.vRoad[*ivR].ID2].y <<  endl;
+	//		g.vRoad[*ivR].mTV[t] = v;
 //			cout << (*ivR) << "\t" << g.vRoad[*ivR].ID1 << "\t" << g.vRoad[*ivR].ID2 << endl;
-			ts = 30 * (*ivL / distance);
+			ts = timedif * (*ivL / distance);
 //			tt = addTime(tt, ts);
 			t = ts + t;
 			if(t > 86399)
 				t-=86399;
 		}
+		oFile.close();
 		vRoadList.clear();
 		vLength.clear();
 	}
@@ -340,7 +376,7 @@ void RoadNetwork::posMatchRoad(double px, double py, int& roadID, double &x, dou
 	for(ivSN = qtt->vSimpleNode.begin(); ivSN != qtt->vSimpleNode.end(); ivSN++)
 	{
 		dtmp = nodeDist(px, py, (*ivSN).x, (*ivSN).y);
-		if(dtmp > 300)
+		if(dtmp > 500)
 			continue;
 
 		for(ivR = (*ivSN).vRoadList.begin(); ivR != (*ivSN).vRoadList.end(); ivR++)
@@ -572,10 +608,10 @@ double RoadNetwork::distanceDijkBetween2Pair(int n11, int n12, double rLength, i
 	priority_queue<h> qh;
 	mDistance[n11] = 0;
 
-	findNStepNeighbor(n11, 4, mDistance, mPrevious);
-	findNStepNeighbor(n12, 4, mDistance, mPrevious);
-	findNStepNeighbor(n21, 4, mDistance, mPrevious);
-	findNStepNeighbor(n12, 4, mDistance, mPrevious);
+	findNStepNeighbor(n11, 6, mDistance, mPrevious);
+	findNStepNeighbor(n12, 6, mDistance, mPrevious);
+	findNStepNeighbor(n21, 6, mDistance, mPrevious);
+	findNStepNeighbor(n12, 6, mDistance, mPrevious);
 
 	cout << "mDistance size:" << mDistance.size() << endl;
 
@@ -669,6 +705,9 @@ double RoadNetwork::distanceAnyNodePair(double x1, double y1, double x2, double 
 	int sourceID, desID;
 	posMatchRoad(x1, y1, roadID1, sourceX, sourceY);
 	posMatchRoad(x2, y2, roadID2, desX, desY);
+
+	if(roadID1 < 0 || roadID1 > g.vRoad.size() || roadID2 < 0 || roadID2 > g.vRoad.size() )
+		return 10000000;
 
 	double ds1, ds2, dd1, dd2;
 	distanceToEnds(x1, y1, roadID1, ds1, ds2);
@@ -766,6 +805,8 @@ void RoadNetwork::distanceToEnds(double x, double y, int roadID, double &d1, dou
 	double dmin = 9999999;
 	double dsum = 0;//sum of dpart
 	double dpart;	//distance of each segmenta
+	cout << "RD ID:" << roadID << endl;
+	cout << "RD size:" << g.vRoad[roadID].vpRoadDetail.size() << endl;
 	if(g.vRoad[roadID].vpRoadDetail.size() == 0)
 	{
 		cout << "roadDetail size:" << g.vRoad[roadID].vpRoadDetail.size();

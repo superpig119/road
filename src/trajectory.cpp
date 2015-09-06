@@ -91,7 +91,7 @@ void Trajectory::readRawTrajectoryFile(string filename)
 		vTrajectory[i].vTU.push_back(tu);
 		ifile >> stmp1;
 	}
-
+	ifile.close();
 }
 
 struct tm Trajectory::wrapTime(ifstream &ifile)
