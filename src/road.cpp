@@ -268,12 +268,11 @@ void RoadNetwork::attachTrajectory()
 		{
 			cout << setprecision(15) << (*ivTU).x << "," << (*ivTU).y << "," << ctime(&(*ivTU).t) << endl;
 		}*/
-			trajectory.testTrajectory();
 			trajectoryMatchRoads(*ivT, i);
-			break;	//Test for the first trajectory
+//			break;	//Test for the first trajectory
 		}
 		trajectory.vTrajectory.clear();
-		break;
+//		break;
 	}
 }
 
@@ -302,18 +301,21 @@ void RoadNetwork::trajectoryMatchRoads(taxiTrajectory &tt, int i)
 		t2 = (*ivTU).t;
 		cout << ctime(&t1);
 		cout << ctime(&t2);
-		cout << setprecision(15) << (*ivTU).x << "\t" <<  (*ivTU).y << "\t" << (*(ivTU + 1)).x << "\t" << (*(ivTU + 1)).y << "\t" << ctime(&((*ivTU).t)) << "\t" << ctime(&t1) << "\t" << distance<< endl;
+		cout << setprecision(15) << (*ivTU).x << "\t" <<  (*ivTU).y << "\t" << (*(ivTU + 1)).x << "\t" << (*(ivTU + 1)).y << "\t" << distance<< endl;
 		timedif = difftime(t1, t2);
 		v = distance / timedif;
 		cout << "distance:" << distance << "\ttime:" << timedif << endl;
 		cout << timedif << endl;
-		if(distance > nodeDist((*ivTU).x, (*ivTU).y, (*(ivTU+1)).x, (*(ivTU+1)).y) + 100)
+		cout << "v:" << v << endl;
+		double dd = getDistanceVer2((*ivTU).x, (*ivTU).y, (*(ivTU+1)).x, (*(ivTU+1)).y);
+		cout << "dd: " << dd << endl;
+		if(distance > getDistanceVer2((*ivTU).x, (*ivTU).y, (*(ivTU+1)).x, (*(ivTU+1)).y) + 100)
 		{
+			cout << "nodeDist:" << nodeDist((*ivTU).x, (*ivTU).y, (*(ivTU+1)).x, (*(ivTU+1)).y) + 100 << endl;
 			vRoadList.clear();
 			vLength.clear();
 			continue;
 		}
-		cout << "v:" << v << endl;
 /*		if(v > 50)
 		{
 			cout << setprecision(15) << "From " << (*ivTU).x << "," << (*ivTU).y << " to " << (*(ivTU+1)).x << "," << (*(ivTU+1)).y << endl;
@@ -325,35 +327,27 @@ void RoadNetwork::trajectoryMatchRoads(taxiTrajectory &tt, int i)
 			int a;
 			cin >>a; 
 		}*/
-		if(v > 45)
+		if(v > 50)
 		{
 			vRoadList.clear();
 			vLength.clear();
 			continue;
 		}
-//		road_time tt;
 		struct tm * ptm;
 		ptm = gmtime(&((*ivTU).t));
-/*		tt.hour = ptm->tm_hour;
-		tt.minute = ptm->tm_min;
-		tt.second = ptm->tm_sec;*/
 		int t = 0;
 		t += ptm->tm_hour * 3600;
 		t += ptm->tm_min * 60;
 		t += ptm->tm_sec;
 		ofstream oFile("speed", ios::app);
-		oFile << setprecision(15) << (*ivTU).x << "\t" <<  (*ivTU).y << "\t" << (*(ivTU + 1)).x << "\t" << (*(ivTU + 1)).y << "\t" << ctime(&((*ivTU).t)) << "\t" << ctime(&((*(ivTU+1)).t)) << "\t" << timedif << endl;
 		for(ivR = vRoadList.begin(), ivL = vLength.begin(); ivR != vRoadList.end(); ivR++, ivL++)
 		{
 			if(ivR != vRoadList.begin() && (*ivR == *(ivR-1)))
 			{
 				continue;
 			}
-			oFile << setprecision(15) << *ivR << "\t" << t << "\t" << v << "\t" << g.vNode[g.vRoad[*ivR].ID1].x << "\t" << g.vNode[g.vRoad[*ivR].ID1].y << "\t" << g.vNode[g.vRoad[*ivR].ID2].x << "\t" << g.vNode[g.vRoad[*ivR].ID2].y <<  endl;
-	//		g.vRoad[*ivR].mTV[t] = v;
-//			cout << (*ivR) << "\t" << g.vRoad[*ivR].ID1 << "\t" << g.vRoad[*ivR].ID2 << endl;
+			oFile << setprecision(15) << *ivR << "\t" << t << "\t" << v << endl;
 			ts = timedif * (*ivL / distance);
-//			tt = addTime(tt, ts);
 			t = ts + t;
 			if(t > 86399)
 				t-=86399;
@@ -432,7 +426,6 @@ double RoadNetwork::nodeDist(double x1, double y1, double x2, double y2)
 void RoadNetwork::testRoadSpeed()
 {
 	vector<roadInfo>::iterator ivR;
-//	map<road_time, double>::iterator imTV;
 	map<int, double>::iterator imTV;
 	for(ivR = g.vRoad.begin(); ivR != g.vRoad.end(); ivR++)
 	{
@@ -441,7 +434,6 @@ void RoadNetwork::testRoadSpeed()
 			cout << "Road ID:" << (*ivR).roadID << endl;;
 			for(imTV = (*ivR).mTV.begin(); imTV != (*ivR).mTV.end(); imTV++)
 			{
-		//		cout <<	(*imTV).first.hour << ":" << (*imTV).first.minute << ":" << (*imTV).first.second << "\t" << (*imTV).second << endl;
 				cout << (*imTV).first << "\t" << (*imTV).second << endl;
 			}
 		}
@@ -495,10 +487,6 @@ int	RoadNetwork::readRoadSpeed()
 		ifile >> num;
 		for(i = 0; i < num; i++)
 		{
-		//	road_time t;
-		//	ifile >> t.hour;
-		//	ifile >> t.minute;
-		//	ifile >> t.second;
 			ifile >> t;
 			ifile >> v;
 			g.vRoad[roadID].mTV[t] = v;
@@ -613,7 +601,7 @@ double RoadNetwork::distanceDijkBetween2Pair(int n11, int n12, double rLength, i
 	findNStepNeighbor(n21, 6, mDistance, mPrevious);
 	findNStepNeighbor(n12, 6, mDistance, mPrevious);
 
-	cout << "mDistance size:" << mDistance.size() << endl;
+///	cout << "mDistance size:" << mDistance.size() << endl;
 
 	for(imNL = g.vNode[n11].mNeighborLength.begin(); imNL != g.vNode[n11].mNeighborLength.end(); imNL++)
 	{
@@ -660,14 +648,14 @@ double RoadNetwork::distanceDijkBetween2Pair(int n11, int n12, double rLength, i
 	if(mDistance[n21] < mDistance[n22])
 	{
 		dist = mDistance[n21];
-		cout << "NODE2:" << g.vNode[n21].x << "," << g.vNode[n21].y << endl;
+//		cout << "NODE2:" << g.vNode[n21].x << "," << g.vNode[n21].y << endl;
 		id = n21;
 		type = 0;
 	}
 	else
 	{
 		dist = mDistance[n22];
-		cout << "NODE2:" << g.vNode[n22].x << "," << g.vNode[n22].y << endl;
+//		cout << "NODE2:" << g.vNode[n22].x << "," << g.vNode[n22].y << endl;
 		id = n22;
 		type = 2;
 	}
@@ -746,28 +734,24 @@ double RoadNetwork::distanceAnyNodePair(double x1, double y1, double x2, double 
 
 		if(c == 0)
 		{
-//			cout << "C = 0" << endl;
 			d = ds1 + d + dd1;
 			dstart = ds1;
 			dend = dd1;
 		}
 		else if(c == 1)
 		{
-//			cout << "C = 1" << endl;
 			d = ds2 + d + dd1;
 			dstart = ds2;
 			dend = dd1;
 		}
 		else if(c == 2)
 		{
-//			cout << "C = 2" << endl;
 			d = ds1 + d + dd2;
 			dstart = ds1;
 			dend = dd2;
 		}
 		else if(c == 3)
 		{
-//			cout << "C = 3" << endl;
 			d = ds2 + d + dd2;
 			dstart = ds2;
 			dend = dd2;
@@ -805,13 +789,8 @@ void RoadNetwork::distanceToEnds(double x, double y, int roadID, double &d1, dou
 	double dmin = 9999999;
 	double dsum = 0;//sum of dpart
 	double dpart;	//distance of each segmenta
-	cout << "RD ID:" << roadID << endl;
-	cout << "RD size:" << g.vRoad[roadID].vpRoadDetail.size() << endl;
-	if(g.vRoad[roadID].vpRoadDetail.size() == 0)
-	{
-		cout << "roadDetail size:" << g.vRoad[roadID].vpRoadDetail.size();
-		cout << g.vRoad[roadID].ID1 << " " << g.vRoad[roadID].ID2 << endl;
-	}
+//	cout << "RD ID:" << roadID << endl;
+//	cout << "RD size:" << g.vRoad[roadID].vpRoadDetail.size() << endl;
 	for(ivpRD = g.vRoad[roadID].vpRoadDetail.begin(); ivpRD != g.vRoad[roadID].vpRoadDetail.end() - 1; ivpRD++, i++)
 	{
 		dpart = nodeDist((*ivpRD).first, (*ivpRD).second, (*(ivpRD + 1)).first, (*(ivpRD + 1)).second);
@@ -829,24 +808,21 @@ void RoadNetwork::distanceToEnds(double x, double y, int roadID, double &d1, dou
 		}
 	}
 
-	cout << "dsum:" << dsum << endl;
 	d1 = d2 = 0;
-	cout << "Road Length:" << g.vRoad[roadID].length << endl;
-	cout << "Road ID1:" << g.vNode[g.vRoad[roadID].ID1].x << "," << g.vNode[g.vRoad[roadID].ID1].y << endl;
-	cout << "Road ID2:" << g.vNode[g.vRoad[roadID].ID2].x << "," << g.vNode[g.vRoad[roadID].ID2].y << endl;
+//	cout << "Road Length:" << g.vRoad[roadID].length << endl;
+//	cout << "Road ID1:" << g.vNode[g.vRoad[roadID].ID1].x << "," << g.vNode[g.vRoad[roadID].ID1].y << endl;
+//	cout << "Road ID2:" << g.vNode[g.vRoad[roadID].ID2].x << "," << g.vNode[g.vRoad[roadID].ID2].y << endl;
 	for(i = 0; i < pos; i++)
 	{
 		d1 += g.vRoad[roadID].length * vLength[i] / dsum;
 	}
 	d1 += g.vRoad[roadID].length * dp1 / dsum;
-	cout << "d1:" << d1 << endl;
 	
 	d2 = g.vRoad[roadID].length * dp2 / dsum;
 	for(i = pos + 1; i < vLength.size(); i++)
 	{
 		d2 += g.vRoad[roadID].length * vLength[i] / dsum;
 	}
-	cout << "d2:" << d2 << endl;
 }
 
 double RoadNetwork::pointToRoadDist(double px, double py, double rx1, double ry1, double rx2, double ry2)
@@ -908,3 +884,31 @@ road_time RoadNetwork::addTime(road_time t, int sec)
 
 	return t;
 }
+
+double RoadNetwork::rad(double d)
+{
+	return d * PI / 180.0;
+}
+
+double RoadNetwork::getDistanceVer1(double lat1, double lng1, double lat2, double lng2)
+{
+	double radLat1 = rad(lat1);
+	double radLat2 = rad(lat2);
+	double radLng1 = rad(lng1);
+	double radLng2 = rad(lng2);
+	double s = acos(sin(radLat1)*sin(radLat2)+cos(radLat1)*cos(radLat2)*cos(radLng1-radLng2));
+	s = s * EARTH_RADIUS;
+	return s * 1000;
+}
+
+double RoadNetwork::getDistanceVer2(double lat1, double lng1, double lat2, double lng2)
+{
+	double radLat1 = rad(lat1);
+	double radLat2 = rad(lat2);
+	double a = radLat1 - radLat2;
+	double b = rad(lng1) - rad(lng2);
+	double s = 2 * asin(sqrt(pow(sin(a/2),2) + cos(radLat1)*cos(radLat2)*pow(sin(b/2),2)));
+	s = s * EARTH_RADIUS;
+	return s * 1000;
+}
+

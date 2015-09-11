@@ -1,0 +1,4 @@
+nodeFile ../data/beijing/beijingNode
+edgeFile ../data/beijing/beijingRoad
+trajectoryFile ../data/beijing/beijingTrajectory
+speedFile	../data/beijing/beijingSpeed

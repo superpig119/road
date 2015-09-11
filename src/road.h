@@ -11,6 +11,9 @@
 #include "trajectory.h"
 #include <pthread.h>
 
+#define EARTH_RADIUS  6371.004
+#define PI 3.1415926
+
 using namespace std;
 
 typedef struct ROADTRAJECTORYUNIT
@@ -97,7 +100,10 @@ public:
 
 	road_time	addTime(road_time t, int sec);
 	
-	
+	//Functions calculating the distance according the coordinates
+	double	rad(double d);
+	double	getDistanceVer1(double lat1, double lng1, double lat2, double lng2);
+	double	getDistanceVer2(double lat1, double lng1, double lat2, double lng2);
 //	int loadGraph();
 //	int writeGraph();
 };
