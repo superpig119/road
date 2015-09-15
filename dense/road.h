@@ -8,7 +8,8 @@
 #include <math.h>
 #include "conf.h"
 #include <pthread.h>
-
+#include <time.h> 
+	
 #define EARTH_RADIUS  6371.004
 #define PI 3.1415926
 
@@ -22,6 +23,7 @@ typedef struct ROAD
 	int		direction;	//A6
 	float	length;		//A13
 	map<double, int>	mV;
+	map<int, vector<int> >	mGraV;	//time slot number, speed
 	vector<pair<double, double> > vpRoadDetail;	//Road line detail
 }roadInfo;
 
@@ -58,9 +60,12 @@ public:
 	int		readSpeed();
 	void	testGraph();
 	
+	void	organizeSpeed(int gra);
+
 	double	nodeDist(double x1, double y1, double x2, double y2);
 	float	distanceDijkstra(double ID1, double ID2, vector<double>& vRoadList);
 	vector<string> split(const string &s, const string &seperator);
+	time_t	strToTime(const char* date,char* format, struct tm &tm);
 
 	map<double, double> mIDTrans;	//Original,Order
 	map<double, double> mRIDTrans;	//Order,Original

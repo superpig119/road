@@ -20,8 +20,8 @@ int RoadNetwork::buildGraph()
 	
 	readRoad();
 	readNode();
-	readTrajectory();
-//	readSpeed();
+//	readTrajectory();
+	readSpeed();
 	return 0;
 }
 	
@@ -268,7 +268,9 @@ int	RoadNetwork::readSpeed()
 	
 	int lineNum, sNum, i, j, v;
 	double roadID, t;
+	stringstream ss;
 	inS >> lineNum;
+	char* c = "%Y%m%d%H%M%S";
 	for(i = 0; i < lineNum; i++)
 	{
 		inS >> roadID;
@@ -276,7 +278,17 @@ int	RoadNetwork::readSpeed()
 		for(j = 0; j < sNum; j++)
 		{
 			inS >> t >> v;
+			string ct;
+			ss.clear();
+			ss.str("");
+			ss << t;
+			ss >> ct;
 			g.mRoad[roadID].mV[t] = v;
+			struct tm tm;
+			strptime(ct.c_str(), c, &tm) ;
+//			time_t time = strToTime(ct.c_str(), c, tm);
+//			cout << ctime(&time);
+			cout << tm.tm_hour << "\t" << tm.tm_min << endl;
 		}
 	}
 	inS.close();
@@ -321,54 +333,10 @@ void RoadNetwork::testGraph()
 		cout << endl;
 	}*/
 }
-
-vector<string> RoadNetwork::split(const string &s, const string &seperator)
+	
+void RoadNetwork::organizeSpeed(int gra)
 {
-	vector<string> result;
-	typedef string::size_type string_size;
-	string_size i = 0;
-		    
-	while(i != s.size())
-	{
-		int flag = 0;
-	    while(i != s.size() && flag == 0)
-		{
-			flag = 1;
-		    for(string_size x = 0; x < seperator.size(); ++x)
-			{
-				if(s[i] == seperator[x])
-				{
-					++i;
-					flag = 0;
-					break;
-				}
-			}
-	    }
-					
-		flag = 0;
-		string_size j = i;
-		while(j != s.size() && flag == 0)
-		{
-			for(string_size x = 0; x < seperator.size(); ++x)
-			{
-				if(s[j] == seperator[x])
-				{
-					flag = 1;
-					break;
-				}
-			}
-			if(flag == 0) 
-				++j;
-		}
-		 
-		if(i != j)
-		{
-			result.push_back(s.substr(i, j-i));
-			i  = j;
-		}
-	}
-
-	return result;
+	
 }
 
 double RoadNetwork::nodeDist(double x1, double y1, double x2, double y2)
@@ -452,3 +420,60 @@ float RoadNetwork::distanceDijkstra(double ID1, double ID2, vector<double>& vRoa
 	return vDistance[nID2];
 }
 	
+vector<string> RoadNetwork::split(const string &s, const string &seperator)
+{
+	vector<string> result;
+	typedef string::size_type string_size;
+	string_size i = 0;
+		    
+	while(i != s.size())
+	{
+		int flag = 0;
+	    while(i != s.size() && flag == 0)
+		{
+			flag = 1;
+		    for(string_size x = 0; x < seperator.size(); ++x)
+			{
+				if(s[i] == seperator[x])
+				{
+					++i;
+					flag = 0;
+					break;
+				}
+			}
+	    }
+					
+		flag = 0;
+		string_size j = i;
+		while(j != s.size() && flag == 0)
+		{
+			for(string_size x = 0; x < seperator.size(); ++x)
+			{
+				if(s[j] == seperator[x])
+				{
+					flag = 1;
+					break;
+				}
+			}
+			if(flag == 0) 
+				++j;
+		}
+		 
+		if(i != j)
+		{
+			result.push_back(s.substr(i, j-i));
+			i  = j;
+		}
+	}
+
+	return result;
+}
+
+time_t RoadNetwork::strToTime(const char* date,char* format, struct tm &tm)
+{
+	struct tm t;
+	strptime(date,format, &t);
+	time_t ft=mktime(&t);
+	return ft;
+}
+

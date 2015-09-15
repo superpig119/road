@@ -1,4 +1,4 @@
-nodeFile ../data/beijing/beijingNode
-edgeFile ../data/beijing/beijingRoad
-trajectoryFile ../data/beijing/beijingTrajectory
-speedFile	../data/beijing/beijingSpeed
+nodeFile ../data/shanghai/shanghaiNode
+edgeFile	../data/shanghai/shanghaiRoad
+trajectoryFile ../data/shanghai/shanghaiTrajectory
+speedFile	../data/shanghai/shanghaiSpeed

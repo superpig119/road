@@ -1,4 +1,0 @@
-nodeFile ../data/shanghai/shanghaiNode
-edgeFile	../data/shanghai/shanghaiRoad
-trajectoryFile ../data/shanghai/shanghaiTrajectory
-speedFile	../data/shanghai/shanghaiSpeed
