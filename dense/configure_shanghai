@@ -1,0 +1,9 @@
+nodeFile ../data/shanghai/shanghaiNode
+edgeFile	../data/shanghai/shanghaiRoad
+trajectoryFile ../data/shanghai/shanghaiTrajectory
+speedFile	../data/shanghai/shanghaiSpeedTime
+interval	1	0
+avgSpeedFile	../data/shanghai/shanghaiAvgSpeed
+dataPath	../data/shanghai/
+isoRoadFile
+isoNodeFile
