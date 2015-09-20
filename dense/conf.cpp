@@ -2,10 +2,19 @@
 
 int Conf::readConf()
 {
-	fstream ifile("configure");
-	if(!ifile)
+	ifstream iconf("configure");
+	if(!iconf)
 	{
 		cout << "Cannot open configure file" << endl;
+		return 1;
+	}
+	iconf >> city;
+	iconf.close();
+
+	ifstream ifile(("configure_" + city).c_str());
+	if(!ifile)
+	{
+		cout << "Cannot open " + city + " configure file" << endl;
 		return 1;
 	}
 	string s;
@@ -19,7 +28,18 @@ int Conf::readConf()
 			ifile >> trajectoryFilePath;
 		else if(s == "speedFile")
 			ifile >> speedFilePath;
+		else if(s == "interval")
+			ifile >> h >> m;
+		else if(s == "dataPath")
+			ifile >> dataPath;
+		else if(s == "avgSpeedFile")
+			ifile >> avgSpeedFilePath;
+		else if(s == "isoRoadFile")
+			ifile >> isoRoadFilePath;
+		else if(s == "isoNodeFile")
+			ifile >> isoNodeFilePath;
 	}
 
 	return 0;
 }
+	

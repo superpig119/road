@@ -10,10 +10,17 @@ using namespace std;
 class Conf
 {
 public:
+	string city;
+	string dataPath;
 	string nodeFilePath;
 	string edgeFilePath;
 	string trajectoryFilePath;
 	string speedFilePath;
+	string avgSpeedFilePath;
+	string isoRoadFilePath;
+	string isoNodeFilePath;
 	int readConf();
+	int	h;
+	int	m;
 };
 #endif
