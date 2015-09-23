@@ -90,6 +90,12 @@ public:
 	void	testRoadSpeed();
 	int		writeRoadSpeed();
 	int		readRoadSpeed();
+	
+	void	organizeSpeed();
+	int		readAvgSpeed(map<int, vector<int> > &mTNumRoad);
+	void	fillVoidSpeedST(map<int, vector<int> > &mTNumRoad);
+	int		readTotalAvgSpeed();
+	int		readCost();
 
 	float	distanceDijkstra(int ID1, int ID2, vector<int>& vRoadList);
 	double	distanceDijkBetween2Pair(int n11, int n12, double rLength, int n21, int n22, int &type, vector<int> &vRoadList);

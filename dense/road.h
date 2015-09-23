@@ -42,10 +42,12 @@ typedef struct NODE
 	double	y;
 	double	MainID;	//A8,type=1,2,3
 	bool	isolated;
+	double	neighborNode;	//special case, A12
 	vector<double>		vSubID;				//A9,A10,type=3
 	map<double, float>	mNeighborLength;	//Length of all neighbor
 //	map<double, int>	mMainNeighborRoad;	//A7,type=2,3
 	map<double, int>	mSubNeighborRoad;	//A13
+	vector<int>			vRoad0;	//A13 when A5=0
 }node;
 
 
@@ -62,6 +64,7 @@ public:
 	Conf	conf;
 
 	int		buildGraph();	//Build the roadnetwork
+	int		readNodeMap();
 	int		readRoad();
 	int		readNode();
 	int		readTrajectory();
@@ -72,14 +75,25 @@ public:
 	void	organizeSpeed();
 	int		readAvgSpeed(map<int, vector<int> > &mTNumRoad);
 	void	fillVoidSpeedST(map<int, vector<int> > &mTNumRoad);
+	int		readTotalAvgSpeed();
 	int		readCost();
 
 	double	nodeDist(double x1, double y1, double x2, double y2);
-	float	distanceDijkstra(double ID1, double ID2, vector<double>& vRoadList);
+	float	distanceDijkstraA(double ID1, double ID2, vector<int>& vRoadList);
 	vector<string> split(const string &s, const string &seperator);
+
+	double	shortestTimeDij(double ID1, double ID2, int t1, vector<int>& vRoadList, vector<double>& vRTime, vector<double>& vRTakeTime);
+	void	IntSingleFastestPaths(double ID1, double ID2, vector<int>& vRoadList, int t1, int t2, vector<int>& vt);	//ICDE2006
+
+	void	testDijA();
+	void	testTimeDij();
+	vector<pair<double, double> >	generateNodePair(int N);
+	double	rad(double d);
+	double coorDistance(double ID1, double ID2);
 
 	map<double, double> mIDTrans;	//Original,Order
 	map<double, double> mRIDTrans;	//Order,Original
+	map<double, double> mNodeMap;
 
 	int		T;	//Speed interval size
 	int		TN;	//Speed interval number

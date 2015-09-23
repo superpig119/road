@@ -19,8 +19,10 @@ public:
 	string avgSpeedFilePath;
 	string isoRoadFilePath;
 	string isoNodeFilePath;
+	string nodeMapFilePath;
 	int readConf();
 	int	h;
 	int	m;
+	int testNum;
 };
 #endif

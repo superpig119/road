@@ -38,6 +38,10 @@ int Conf::readConf()
 			ifile >> isoRoadFilePath;
 		else if(s == "isoNodeFile")
 			ifile >> isoNodeFilePath;
+		else if(s == "testNum")
+			ifile >> testNum;
+		else if(s == "nodeMapFile")
+			ifile >> nodeMapFilePath;
 	}
 
 	return 0;

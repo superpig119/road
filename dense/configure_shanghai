@@ -5,5 +5,7 @@ speedFile	../data/shanghai/shanghaiSpeedTime
 interval	1	0
 avgSpeedFile	../data/shanghai/shanghaiAvgSpeed
 dataPath	../data/shanghai/
-isoRoadFile
-isoNodeFile
+isoRoadFile	../data/shanghai/shanghaiIsoRoad
+isoNodeFile ../data/shanghai/shanghaiIsoNode
+nodeMapFile	../data/shanghai/shanghaiNodeMap
+testNum	10
