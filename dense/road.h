@@ -82,7 +82,7 @@ public:
 	float	distanceDijkstraA(double ID1, double ID2, vector<int>& vRoadList);
 	vector<string> split(const string &s, const string &seperator);
 
-	double	shortestTimeDij(double ID1, double ID2, int t1, vector<int>& vRoadList, vector<double>& vRTime, vector<double>& vRTakeTime);
+	double	shortestTimeDij(double ID1, double ID2, int t1, vector<int>& vRoadList, vector<double>& vRTime, vector<double>& vRTakeTime, double &d);
 	void	IntSingleFastestPaths(double ID1, double ID2, vector<int>& vRoadList, int t1, int t2, vector<int>& vt);	//ICDE2006
 
 	void	testDijA();

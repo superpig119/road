@@ -530,6 +530,8 @@ int	RoadNetwork::readSpeed()
 //			if(avgV == 0)
 //				avgV = 0.1;
 //			(*imRoad).second.mAvgV[(*imGraV).first] = count / (*imGraV).second.size();
+			if(avgV == 0)
+				continue;
 			(*imRoad).second.mAvgV[(*imGraV).first] = avgV;
 		}
 	}
@@ -644,7 +646,7 @@ void RoadNetwork::fillVoidSpeedST(map<int, vector<int> > &mTNumRoad)
 	int roadID;
 
 //	while(!qRoad.empty() && mVisited.size() != g.mRoad.size())
-//	while(!qRoad.empty() && mVisited.size() != 294108)
+//	while(!qRoad.empty() && mVisited.size() != 294100)
 	while(!qRoad.empty() && mVisited.size() != 294120)
 	{
 		roadID = qRoad.front();
@@ -764,8 +766,8 @@ void RoadNetwork::fillVoidSpeedST(map<int, vector<int> > &mTNumRoad)
 		ofCOST << setprecision(15) << (*imRoad).first << "\t" << (*imRoad).second.mAvgV.size();
 		for(imAvgV = (*imRoad).second.mAvgV.begin(); imAvgV != (*imRoad).second.mAvgV.end(); imAvgV++)
 		{
-			if((*imAvgV).second == 0)
-				(*imAvgV).second = 0.1;
+//			if((*imAvgV).second == 0)
+//				(*imAvgV).second = 0.1;
 //			(*imRoad).second.mCost[(*imAvgV).first] = (*imRoad).second.length / ((*imAvgV).second * 3.6);
 			ofile << setprecision(15) << "\t" << (*imAvgV).first << "\t" << (*imAvgV).second;
 			ofCOST << setprecision(15) << "\t" << (*imAvgV).first << "\t" << (((*imRoad).second.length) / ((*imAvgV).second / 3.6)) / 60;	//Minutes
@@ -775,10 +777,8 @@ void RoadNetwork::fillVoidSpeedST(map<int, vector<int> > &mTNumRoad)
 		ofCOST << endl;
 		if((*imRoad).second.mAvgV.size() == 0)
 		{
-			for(isSNR = (*imRoad).second.sNeighborRoad.begin();isSNR != (*imRoad).second.sNeighborRoad.end(); isSNR++)
-			{
-				sout.insert(*isSNR);
-			}
+			sout.insert((*imRoad).second.ID1);
+			sout.insert((*imRoad).second.ID2);
 			ofIR << setprecision(15) << (*imRoad).first << endl;
 		}
 	}
@@ -814,6 +814,7 @@ int RoadNetwork::readCost()
 	int i, j, roadID, sNum, h;
 	double t;
 	cout << "Reading cost file" << endl;
+	cout  << "ROAD SIZE" << g.mRoad.size() << endl;
 	for(i = 0; i < g.mRoad.size(); i++)
 	{
 		ifCOST >> roadID;
@@ -953,7 +954,7 @@ float RoadNetwork::distanceDijkstraA(double ID1, double ID2, vector<int>& vRoadL
 	return vDistance[nID2];
 }
 	
-double RoadNetwork::shortestTimeDij(double ID1, double ID2, int t1, vector<int>& vRoadList, vector<double>& vRTime, vector<double>& vRTakeTime)
+double RoadNetwork::shortestTimeDij(double ID1, double ID2, int t1, vector<int>& vRoadList, vector<double>& vRTime, vector<double>& vRTakeTime, double &d)
 {
 	double nID1 = mIDTrans[ID1];
 	double nID2 = mIDTrans[ID2];
@@ -963,12 +964,28 @@ double RoadNetwork::shortestTimeDij(double ID1, double ID2, int t1, vector<int>&
 	priority_queue<h> qh;
 	vector<int> vPrevious(g.mNode.size(), -1);
 	map<double, int>::iterator imNR;
+	map<double, roadInfo>::iterator imRoad;
 
+	map<int, double>::iterator imCost;
 	double dtmp, ttmp;
 	vTime[nID1] = 0;
 	int tt = (int)(t1 / T);
 	for(imNR = g.mNode[ID1].mSubNeighborRoad.begin(); imNR != g.mNode[ID1].mSubNeighborRoad.end(); imNR++)
 	{
+/*			cout << "init1:" << g.mRoad[(*imNR).second].mCost[tt] << "\t" << tt << "\t" << (*imNR).second << endl;	//used time
+			cout << "cost size:" << g.mRoad[(*imNR).second].mCost.size() <<  endl;
+			for(imCost = g.mRoad[(*imNR).second].mCost.begin(); imCost != g.mRoad[(*imNR).second].mCost.end(); imCost++)
+				cout << (*imCost).first << "\t" << (*imCost).second << "\t";
+			cout << endl;
+	for(imRoad = g.mRoad.begin(); imRoad != g.mRoad.end(); imRoad++)
+	{
+		cout << setprecision(15) << (*imRoad).first << "\t" << (*imRoad).second.mCost.size();
+		for(imCost = (*imRoad).second.mCost.begin(); imCost != (*imRoad).second.mCost.end(); imCost++)
+		{
+			cout << "\t" << (*imCost).first << "\t" << (*imCost).second;
+		}
+		cout << endl;
+	}*/
 		if((int)((t1 + g.mRoad[(*imNR).second].mCost[tt]) / T) == tt)	//does not exceed to next interval
 		{
 			vTime[mIDTrans[(*imNR).first]] = g.mRoad[(*imNR).second].mCost[tt];	//used time
@@ -980,8 +997,12 @@ double RoadNetwork::shortestTimeDij(double ID1, double ID2, int t1, vector<int>&
 		}
 		else
 		{
-			dtmp = g.mRoad[(*imNR).second].length - g.mRoad[(*imNR).second].mAvgV[tt] / 0.06 * (((tt + 1) * 60 - t1));
-			ttmp = dtmp / (g.mRoad[(*imNR).second].mAvgV[(tt + 1) % TN] / 0.06) + (tt + 1) * 60;
+			dtmp = g.mRoad[(*imNR).second].length - g.mRoad[(*imNR).second].mAvgV[tt] / 0.06 * (((tt + 1) * T - t1));
+			ttmp = dtmp / (g.mRoad[(*imNR).second].mAvgV[(tt + 1) % TN] / 0.06) + (tt + 1) * T;
+			if(ttmp < 0)
+			{
+//				cout << "init" << endl;
+			}
 			vTime[mIDTrans[(*imNR).first]] = ttmp - t1;
 			h hh;
 			hh.pif = make_pair(mIDTrans[(*imNR).first], ttmp - t1);
@@ -1000,7 +1021,7 @@ double RoadNetwork::shortestTimeDij(double ID1, double ID2, int t1, vector<int>&
 		pu = qh.top().pif;
 		qh.pop();
 		
-		if(pu.first == ID2)
+		if(pu.first == nID2)
 			break;
 
 		for(imNR = g.mNode[mRIDTrans[pu.first]].mSubNeighborRoad.begin(); imNR != g.mNode[mRIDTrans[pu.first]].mSubNeighborRoad.end(); imNR++)
@@ -1008,18 +1029,31 @@ double RoadNetwork::shortestTimeDij(double ID1, double ID2, int t1, vector<int>&
 			if((int)((vT[pu.first] + g.mRoad[(*imNR).second].mCost[(int)(vT[pu.first] / T)]) / T) == (int)(vT[pu.first] / T))
 			{
 				ttmp = pu.second + g.mRoad[(*imNR).second].mCost[(int)(vT[pu.first] / T)];
+//				cout << "ttmp original1:" << ttmp << "\t" << (int)(vT[pu.first]/T ) << "\t" << g.mRoad[(*imNR).second].mCost[(int)(vT[pu.first] / T)] << "\t" << (*imNR).second <<endl;
+//				cout << "pu second:" << pu.second << "\t" << g.mRoad[(*imNR).second].mCost[(int)(vT[pu.first] / T)] << endl;
+//				cout << "!!ttmp:" << ttmp << endl;
 			}
 			else
 			{
-				dtmp = g.mRoad[(*imNR).second].length -  g.mRoad[(*imNR).second].mAvgV[(int)(vT[pu.first] / T)] / 3.6 * (((((int)(vT[pu.first] / T) + 1) * 60 - vT[pu.first])) * 60);
-				ttmp = dtmp / (g.mRoad[(*imNR).second].mAvgV[((int)(vT[pu.first] / T) + 1) % TN] / 3.6) / 60 + (((int)(vT[pu.first] / T) + 1) * 60 - t1);
+				dtmp = g.mRoad[(*imNR).second].length -  g.mRoad[(*imNR).second].mAvgV[(int)(vT[pu.first] / T)] / 3.6 * (((((int)(vT[pu.first] / T) + 1) * T - vT[pu.first])) * T);
+//				cout << "dtmp:" << dtmp << endl;
+				ttmp = dtmp / (g.mRoad[(*imNR).second].mAvgV[((int)(vT[pu.first] / T) + 1) % TN] / 3.6) / 60 + (((int)(vT[pu.first] / T) + 1) * T  - t1);
+//				cout << "ttmp original2:" << ttmp << endl;
+				if(ttmp < 0)
+				{
+					cout << "length:" <<  g.mRoad[(*imNR).second].length << endl;
+					cout << "v:" <<  g.mRoad[(*imNR).second].mAvgV[(int)(vT[pu.first] / T)] / 3.6 << endl;
+					cout << "t:" << (((((int)(vT[pu.first] / T) + 1) * T - vT[pu.first])) * 60) << endl;
+				}		
 			}
 
+//			cout << endl << "ttmp:" << ttmp << endl;
 			if(vTime[mIDTrans[(*imNR).first]] == INF && (*imNR).first != ID1)
 			{
 				vTime[mIDTrans[(*imNR).first]] =  ttmp;
 				h hh;
 				hh.pif = make_pair(mIDTrans[(*imNR).first], ttmp);
+//				cout << "ttmp1:" << ttmp << endl;
 				qh.push(hh);
 				vPrevious[mIDTrans[(*imNR).first]] = pu.first;
 				if(t1 + ttmp > 24*60)
@@ -1032,6 +1066,7 @@ double RoadNetwork::shortestTimeDij(double ID1, double ID2, int t1, vector<int>&
 			{
 //				vTime[mIDTrans[(*imNR).first]] = vTime[pu.first] + ttmp;
 				vTime[mIDTrans[(*imNR).first]] = ttmp;
+//				cout << "ttmp2:" << ttmp << endl;
 				if(t1 + ttmp > 24*60)
 					vT[mIDTrans[(*imNR).first]] = t1 + ttmp - 24*60;
 				else
@@ -1050,7 +1085,10 @@ double RoadNetwork::shortestTimeDij(double ID1, double ID2, int t1, vector<int>&
 	vector<double>::reverse_iterator irvRT;
 	vector<double>::reverse_iterator irvRTT;
 	vT[nID1] = t1;
+	cout << "nID2:" << nID2 << endl;
 	cout << "Time:" << vTime[nID2] << endl;
+//a	if(vTime[nID2] < 0 )
+//		return -1;
 	double dist = 0;
 	if(vTime[nID2] != INF)
 	{	
@@ -1065,6 +1103,7 @@ double RoadNetwork::shortestTimeDij(double ID1, double ID2, int t1, vector<int>&
 		}
 	}
 	cout << "Distance:" << dist << endl;
+	d = dist;
 
 	for(irvRL = vRoadListtmp.rbegin(); irvRL != vRoadListtmp.rend(); irvRL++)
 	{
@@ -1166,11 +1205,25 @@ vector<string> RoadNetwork::split(const string &s, const string &seperator)
 void RoadNetwork::testDijA()
 {
 	vector<pair<double, double> > vpNode;
-	vpNode = generateNodePair(conf.testNum);
+//	vpNode = generateNodePair(conf.testNum);
+	ifstream ifile("testPair");
+	double a,b, t;
+	for(int i = 0; i < 10; i++)
+	{
+		ifile >> a >> b >> t;
+		vpNode.push_back(make_pair(a,b));
+	}
+	ifile.close();
+
 	vector<pair<double, double> >::iterator ivpNode;
 	vector<int> vRoadList;
 	vector<int>::iterator ivRL;
 	int i = 1;
+	clock_t start,stop;
+    start = clock();
+	ofstream ofile((conf.city + "DijResult").c_str());
+	vector<double> vD;
+	vector<double>::iterator ivD;
 	for(ivpNode = vpNode.begin(); ivpNode != vpNode.end(); ivpNode++, i++)
 	{
 		vRoadList.clear();
@@ -1178,18 +1231,32 @@ void RoadNetwork::testDijA()
 		cout << setprecision(15) << (*ivpNode).first << "\t" << (*ivpNode).second << endl;
 		cout << setprecision(15)  << "coordinate:" << endl << g.mNode[(*ivpNode).first].x << "\t" << g.mNode[(*ivpNode).first].y << endl << g.mNode[(*ivpNode).second].x << "\t" << g.mNode[(*ivpNode).second].y << endl;
 		float d = distanceDijkstraA((*ivpNode).first, (*ivpNode).second, vRoadList);
+		vD.push_back(d);
 		cout << "distance:" << d << endl;
 		for(ivRL = vRoadList.begin(); ivRL != vRoadList.end(); ivRL++)
 		{
 			cout << *ivRL << "\t" << g.mRoad[*ivRL].length << "\t" << g.mNode[g.mRoad[*ivRL].ID1].x << "\t" << g.mNode[g.mRoad[*ivRL].ID1].y << "\t" << g.mNode[g.mRoad[*ivRL].ID2].x << "\t" << g.mNode[g.mRoad[*ivRL].ID2].y << endl; 
 		}
 	}
+	stop = clock();
+//	cout << setprecision(5) <<  "Time per query:" << ((float)(stop - start) / vpNode.size()) / CLOCKS_PER_SEC << endl;
+
+	i = 1;
+	ofile << setprecision(5) <<  "Time per query:" << ((float)(stop - start) / vpNode.size()) / CLOCKS_PER_SEC << endl;
+	for(ivpNode = vpNode.begin(), ivD = vD.begin(); ivpNode != vpNode.end(); ivpNode++, i++, ivD++)
+	{
+		ofile << endl << "Test " << i << endl;
+		ofile << setprecision(15) << "From nodeID:" << (*ivpNode).first << "\tto nodeID:" << (*ivpNode).second << endl;
+		ofile << setprecision(15)  << "coordinate:" << endl << g.mNode[(*ivpNode).first].x << "\t" << g.mNode[(*ivpNode).first].y << endl << g.mNode[(*ivpNode).second].x << "\t" << g.mNode[(*ivpNode).second].y << endl;
+		ofile << "Distance:" << *ivD << endl;
+	}
+	ofile.close();
 }
 
 void RoadNetwork::testTimeDij()
 {
 	vector<pair<double, double> > vpNode;
-	vpNode = generateNodePair(conf.testNum);
+//	vpNode = generateNodePair(conf.testNum);
 	vector<pair<double, double> >::iterator ivpNode;
 	vector<int> vRoadList;
 	vector<int>::iterator ivRL;
@@ -1197,32 +1264,81 @@ void RoadNetwork::testTimeDij()
 	vector<int>::iterator ivTime;
 	srand((unsigned)time(0));
 	int i;
-	for(i = 0; i < conf.testNum; i++)
+/*	for(i = 0; i < conf.testNum; i++)
 	{
 		vTime.push_back(rand() % (24 * 60));
-	}
+	}*/
 
+	double a,b, t;
+	ifstream ifile("testPair");
+	for(i = 0; i < 10; i++)
+	{
+		ifile >> a >> b >> t;
+		vpNode.push_back(make_pair(a,b));
+		vTime.push_back(t);
+	}
+	ifile.close();
 	i = 1;
 	vector<double> vRTime, vRTakeTime;
 	vector<double>::iterator ivRT, ivRTT;
+	clock_t start,stop;
+    start = clock();
+	ofstream ofile((conf.city + "DijTimeResult").c_str());
+	vector<double> vD;
+	vector<double> vT;
+	vector<double>::iterator ivD, ivT;
+	double d;
 	for(ivpNode = vpNode.begin(), ivTime = vTime.begin(); ivpNode != vpNode.end(); ivpNode++, i++, ivTime++)
 	{
 		vRoadList.clear();
+		float dtmp = distanceDijkstraA((*ivpNode).first, (*ivpNode).second, vRoadList);
+		if(dtmp > 1000000)
+		{
+			vT.push_back(0);
+			vD.push_back(dtmp);
+			cout << "d > 1000000" << endl;
+			continue;
+		}
+		vRoadList.clear();
 		vRTime.clear();
 		vRTakeTime.clear();
+		t = shortestTimeDij((*ivpNode).first, (*ivpNode).second, *ivTime, vRoadList, vRTime, vRTakeTime, d);
+		if (t <= 0)
+		{
+			cout << "t < 0" << endl;
+			vT.push_back(0);
+			vD.push_back(dtmp);
+			continue;
+		}
 		cout << endl << "Test " << i << endl;
 		cout << setprecision(15) << (*ivpNode).first << "\t" << (*ivpNode).second << endl;
 		cout << setprecision(15)  << "coordinate:" << endl << g.mNode[(*ivpNode).first].x << "\t" << g.mNode[(*ivpNode).first].y << endl << g.mNode[(*ivpNode).second].x << "\t" << g.mNode[(*ivpNode).second].y << endl;
-		cout << "input time:" << (int)((*ivTime) / T) << "h " << (*ivTime) % T << "min" << endl;
-		float d = shortestTimeDij((*ivpNode).first, (*ivpNode).second, *ivTime, vRoadList, vRTime, vRTakeTime);
-		cout << "Time:" << (int)(d/T) << "hour " << (int)((int)(d)%T) << "minutes" << endl;
+		cout << "input time:" << (int)((*ivTime) / 60) << "h " << (*ivTime) % 60 << "min" << endl;
+
+		cout << "Time:" << (int)(t/60) << "hour " << (int)((int)(t)%60) << "minutes" << endl;
+		cout << "Distance:" << d << endl;
+		vT.push_back(t);
+		vD.push_back(d);
 		for(ivRL = vRoadList.begin(), ivRT = vRTime.begin(), ivRTT = vRTakeTime.begin(); ivRL != vRoadList.end(); ivRL++, ivRT++, ivRTT++)
 		{
-			cout << *ivRL << "\t" << g.mRoad[*ivRL].length << "\tstart time:" << (int)((*ivRT) / T) <<"h " << (int)((int)(*ivRT) % T) << "min "<< endl;
+			cout << *ivRL << "\t" << g.mRoad[*ivRL].length << "\tstart time:" << (int)((*ivRT) / 60) <<"h " << (int)((int)(*ivRT) % 60) << "min "<< endl;
 			cout << setprecision(7)<< "\ttake time:" << *ivRTT << "min\t" << g.mNode[g.mRoad[*ivRL].ID1].x << "\t" << g.mNode[g.mRoad[*ivRL].ID1].y << "\t" << g.mNode[g.mRoad[*ivRL].ID2].x << "\t" << g.mNode[g.mRoad[*ivRL].ID2].y << endl; 
 		}
-
 	}
+    stop = clock();
+
+	i = 1;
+//	ofile << setprecision(5) <<  "Time per query:" << ((float)(stop - start) / vpNode.size()) / CLOCKS_PER_SEC << endl;
+	for(ivpNode = vpNode.begin(), ivD = vD.begin(), ivT = vT.begin(), ivTime = vTime.begin(); ivpNode != vpNode.end(); ivpNode++, i++, ivD++, ivT++, ivTime++)
+	{
+		ofile << endl << "Test " << i << endl;
+		ofile << setprecision(15) << "From nodeID:" << (*ivpNode).first << "\tto nodeID:" << (*ivpNode).second << endl;
+		ofile << setprecision(15)  << "coordinate:" << endl << g.mNode[(*ivpNode).first].x << "\t" << g.mNode[(*ivpNode).first].y << endl << g.mNode[(*ivpNode).second].x << "\t" << g.mNode[(*ivpNode).second].y << endl;
+		ofile << "Start time:" << (int)((*ivTime) / 60) << "h " << (*ivTime) % 60 << "min" << endl;
+		ofile << setprecision(7) << "Take Time:" << (int)(*ivT/60) << "hour " << (int)((int)(*ivT)%60) << "minutes" << endl;
+		ofile << "Distance:" << *ivD << endl;
+	}
+	ofile.close();
 }
 	
 vector<pair<double, double> > RoadNetwork::generateNodePair(int N)
@@ -1240,7 +1356,7 @@ vector<pair<double, double> > RoadNetwork::generateNodePair(int N)
 		{
 			id1 = rand() % g.mNode.size();
 			id2 = rand() % g.mNode.size();
-			if(id1 == 0 || id2 == 0)
+			if(mRIDTrans[id1] == 0 || mRIDTrans[id2] == 0)
 				continue;
 			if(!g.mNode[mNodeMap[mRIDTrans[id1]]].isolated && !g.mNode[mNodeMap[mRIDTrans[id2]]].isolated)
 			{
