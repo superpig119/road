@@ -26,11 +26,12 @@ int RoadNetwork::buildGraph()
 	readRoad();
 	readNode();
 //	readTrajectory();
-//	readSpeed();
+	readSpeed();
+	outputSpeed();
 //	organizeSpeed();
 //	readAvgSpeed();
-	readTotalAvgSpeed();
-	readCost();//
+//	readTotalAvgSpeed();
+//	readCost();//
 	return 0;
 }
 	
@@ -434,10 +435,6 @@ void RoadNetwork::testGraph()
 	}
 }
 	
-void RoadNetwork::outputSpeed()
-{
-}
-
 int	RoadNetwork::readSpeed()
 {
 	ifstream inS(conf.speedFilePath.c_str());
@@ -455,7 +452,7 @@ int	RoadNetwork::readSpeed()
 	double roadID, t;
 	stringstream ss;
 	inS >> lineNum;
-	char* format = "%Y%m%d%H%M%S";
+	const char* format = "%Y%m%d%H%M%S";
 	struct tm * ptm;
 	int e = 0;
 	for(i = 0; i < lineNum; i++)
@@ -471,6 +468,8 @@ int	RoadNetwork::readSpeed()
 		for(j = 0; j < sNum; j++)
 		{
 			inS >> t >> h >> m >> v;
+			if(v == 0)
+				continue;
 			dt = 60*h + m;
 		//	inS >> t >> v;
 			string ct;
@@ -564,6 +563,34 @@ int	RoadNetwork::readSpeed()
 		else
 			cout << i << "\t" << mVP[i] << endl;
 	}
+}
+
+void RoadNetwork::outputSpeed()
+{
+	map<double, roadInfo>::iterator		imRoad;
+	map<int, vector<double> >::iterator imGraV;
+	vector<double>::iterator iv;
+	stringstream ss;
+	string sTN;
+	ss.clear();
+	ss.str("");
+	ss << TN;
+	ss >> sTN;
+	ofstream oFile((conf.city+"SpeedDistribution"+sTN).c_str());
+	cout << "Writing " << conf.city << "SpeedDistribution" << sTN << endl;
+	for(imRoad = g.mRoad.begin(); imRoad != g.mRoad.end(); imRoad++)
+	{
+		for(imGraV = (*imRoad).second.mGraV.begin(); imGraV != (*imRoad).second.mGraV.end(); imGraV++)
+		{
+			oFile << setprecision(15) << (*imRoad).first << "\t" << (*imGraV).first << "\t" << (*imGraV).second.size();
+			for(iv = (*imGraV).second.begin(); iv != (*imGraV).second.end(); iv++)
+			{
+				oFile << setprecision(15) << "\t" << (*iv);
+			}
+			oFile << endl;
+		}
+	}
+	oFile.close();
 }
 
 

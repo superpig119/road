@@ -27,10 +27,10 @@ typedef struct ROAD
 	float	length;		//A13
 	bool	isolated;
 	map<double, double>	mV;
-	set<int>			sNeighborRoad;	//connected road,include main 
-	map<int, double>		mAvgV;		//time slot number, average speed
-	map<int, vector<double> >	mGraV;	//time slot number, speed
-	map<int, double>	mCost;		//time slot number, travel time(sec)
+	set<int>					sNeighborRoad;	//connected road,include main 
+	map<int, double>			mAvgV;		//time slot number, average speed
+	map<int, vector<double> >	mGraV;		//time slot number, speed
+	map<int, double>	mCost;				//time slot number, travel time(sec)
 	vector<pair<double, double> > vpRoadDetail;	//Road line detail
 }roadInfo;
 
@@ -71,7 +71,7 @@ public:
 	void	testGraph();
 	
 	int		readSpeed();
-	void	outputSpeed();
+	void	outputSpeed();	//output the speed in slots,for distribution analysis
 	void	organizeSpeed();
 	int		readAvgSpeed(map<int, vector<int> > &mTNumRoad);
 	void	fillVoidSpeedST(map<int, vector<int> > &mTNumRoad);
