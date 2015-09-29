@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <numeric>
 	
 #define EARTH_RADIUS  6371.004
 #define PI 3.1415926
@@ -90,6 +91,8 @@ public:
 	vector<pair<double, double> >	generateNodePair(int N);
 	double	rad(double d);
 	double coorDistance(double ID1, double ID2);
+
+	void	speedRawClassify();	//
 
 	map<double, double> mIDTrans;	//Original,Order
 	map<double, double> mRIDTrans;	//Order,Original

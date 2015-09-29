@@ -27,7 +27,8 @@ int RoadNetwork::buildGraph()
 	readNode();
 //	readTrajectory();
 	readSpeed();
-	outputSpeed();
+//	outputSpeed();
+	speedRawClassify();
 //	organizeSpeed();
 //	readAvgSpeed();
 //	readTotalAvgSpeed();
@@ -1414,4 +1415,82 @@ double RoadNetwork::coorDistance(double ID1, double ID2)
 	double s = acos(sin(radLat1)*sin(radLat2)+cos(radLat1)*cos(radLat2)*cos(radLng1-radLng2));
 	s = s * EARTH_RADIUS;
 	return s * 1000;
+}
+	
+void RoadNetwork::speedRawClassify()
+{
+	map<double, roadInfo>::iterator		imRoad;
+	map<int, vector<double> >::iterator imGraV;
+	vector<double>::iterator iv;
+	stringstream ss;
+	string sTN;
+	ss.clear();
+	ss.str("");
+	ss << TN;
+	ss >> sTN;
+	ofstream ofAvg((conf.city+"SpeedAvg"+sTN).c_str());
+	ofstream ofDev((conf.city+"SpeedDev"+sTN).c_str());
+	cout << "Writing " << conf.city << "Speed classification" << endl;
+	int i, count, span, min, max;
+	vector<double> vtmp;
+	vector<double>::iterator ivtmp;
+	double v;
+	for(imRoad = g.mRoad.begin(); imRoad != g.mRoad.end(); imRoad++)
+	{
+		for(imGraV = (*imRoad).second.mGraV.begin(); imGraV != (*imRoad).second.mGraV.end(); imGraV++)
+		{
+			if((*imGraV).second.size() <= 4)
+			{
+				i = 0;
+				count = 0;
+				for(iv = (*imGraV).second.begin(); iv != (*imGraV).second.end(); iv++)
+				{
+					i++;
+					count += *iv;
+				}
+				v = (double)(count) / (double)(i);
+				ofAvg << setprecision(15) << (*imRoad).first << "\t" << (*imGraV).first << "\t" << v << endl;
+			}
+			else
+			{
+				max = 0;
+				min = 99999999;
+				for(iv = (*imGraV).second.begin(); iv != (*imGraV).second.end(); iv++)
+				{
+					if((*imRoad).first == 6619385)
+						cout << *iv << endl;
+					if(*iv > max)
+						max = *iv;
+					if(*iv < min)
+						min = *iv;
+				}
+				span = max - min;
+				if(span == 0)
+				{
+					ofAvg << setprecision(15) << (*imRoad).first << "\t" << (*imGraV).first << max << endl;
+					continue;
+				}
+
+				vtmp.clear();
+				for(iv = (*imGraV).second.begin(); iv != (*imGraV).second.end(); iv++)
+				{
+					vtmp.push_back((double)(*iv - min) / (double)(span));
+				}
+				double sum = accumulate(vtmp.begin(), vtmp.end(), 0.0);
+				double mean =  sum / vtmp.size();
+				double accum  = 0.0;
+				for(ivtmp = vtmp.begin(); ivtmp != vtmp.end(); ivtmp++) 
+				{
+					accum  += (*ivtmp - mean) * (*ivtmp - mean);
+				}
+				double dev = accum / (double)(vtmp.size());
+				if((*imRoad).first == 6619385)
+					cout << mean << "\t" << accum << "\t" << (double)(vtmp.size()) << "\t" << dev << endl;
+				ofDev << setprecision(15) << (*imRoad).first << "\t" << (*imGraV).first << "\t" << mean << "\t" << dev << endl;
+			}
+		}
+	}
+
+	ofAvg.close();
+	ofDev.close();
 }
