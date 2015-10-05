@@ -42,6 +42,8 @@ int Conf::readConf()
 			ifile >> testNum;
 		else if(s == "nodeMapFile")
 			ifile >> nodeMapFilePath;
+		else if(s == "datapath")
+			ifile >> datapath;
 	}
 
 	return 0;

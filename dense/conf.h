@@ -20,6 +20,7 @@ public:
 	string isoRoadFilePath;
 	string isoNodeFilePath;
 	string nodeMapFilePath;
+	string datapath;
 	int readConf();
 	int	h;
 	int	m;

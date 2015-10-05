@@ -8,4 +8,5 @@ dataPath	../data/shanghai/
 isoRoadFile	../data/shanghai/shanghaiIsoRoad
 isoNodeFile ../data/shanghai/shanghaiIsoNode
 nodeMapFile	../data/shanghai/shanghaiNodeMap
+datapath	../data/
 testNum	10

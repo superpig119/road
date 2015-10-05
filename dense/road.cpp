@@ -18,21 +18,27 @@ int RoadNetwork::buildGraph()
 		return -1;
 	}
 	
-	T = 60 * conf.h + conf.m;
-	TN = 24 * 60 / (60 * conf.h + conf.m);
+	T = 60 * 60 * conf.h + 60 * conf.m;
+	TN = 24 * 60 * 60 / (60 * 60 * conf.h + 60 * conf.m);
 	
 	readNodeMap();
 	cout << "mNodeMap size:" << mNodeMap.size() << endl;
 	readRoad();
 	readNode();
 //	readTrajectory();
-	readSpeed();
+//	readSpeed();
 //	outputSpeed();
-	speedRawClassify();
+//	speedRawClassify();
 //	organizeSpeed();
 //	readAvgSpeed();
-//	readTotalAvgSpeed();
-//	readCost();//
+//	driverAttach();
+//	driverAvg();
+//	readDriver();
+//	extractBriefTrajectory();
+//	testDriver();
+	readTotalAvgSpeed();
+//	readRC();	
+	readCost();//
 	return 0;
 }
 	
@@ -339,11 +345,29 @@ int	RoadNetwork::readTrajectory()
 	double T, L;
 	j = 0;
 	cout << "Read Trajectory" << endl;
+	map<string, double>	mDD;	//map the original car ID to driverID
+	double dID;
+	int k = 0;
 	while(getline(inTraj, stmp))
 	{
 		if(j % 10000 == 0)
 			cout << j << endl;
 		vs = split(stmp, ",");
+		string oid = vs[2];
+		if(mDD.find(oid) == mDD.end())
+		{
+			mDD[oid] = k;
+			dID = k;
+			driver d;
+			d.driverID = dID;
+			vDriver.push_back(d);
+			k++;
+		}
+		else
+		{
+			dID = mDD[oid];
+		}
+		
 		vL = split(vs[4], "|");
 		vT = split(vs[8], "|");
 		vV = split(vs[9], "|");
@@ -369,7 +393,13 @@ int	RoadNetwork::readTrajectory()
 			ss << vV[i];
 			ss >> V;
 
-			g.mRoad[L].mV[T] = V;
+			if(V == 0)
+				continue;
+
+			g.mRoad[L].mV[T].push_back(V);
+			vDriver[dID].vRoad.push_back(L);
+			vDriver[dID].vTime.push_back(T);
+			vDriver[dID].vSpeed.push_back(V);
 		}
 		vL.clear();
 		vT.clear();
@@ -379,21 +409,51 @@ int	RoadNetwork::readTrajectory()
 	}
 	inTraj.close();
 
-	ofstream ofile("speed");
+	cout << "j:" << j << "\tdriver number:" << vDriver.size() << endl;
+	cout << "Writing Raw Speed File" << endl;
+	ofstream ofile(("../data/" + conf.city + "/" + conf.city + "Speed").c_str());
 	ofile << g.mRoad.size() << endl;
 
 	map<double, roadInfo>::iterator imRoad;
-	map<double, double>::iterator imV;
+	map<double, vector<double> >::iterator	imV;
+	vector<double>::iterator		iv;
 	for(imRoad = g.mRoad.begin(); imRoad != g.mRoad.end(); imRoad++)
 	{
-		ofile << setprecision(15)<< (*imRoad).first << "\t" << (*imRoad).second.mV.size();
+		int num = 0;
 		for(imV = (*imRoad).second.mV.begin(); imV != (*imRoad).second.mV.end(); imV++)
 		{
-			ofile << setprecision(15) << "\t" << (*imV).first << "\t" << (*imV).second;
+			num += (*imV).second.size();
+		}
+		ofile << setprecision(15) << (*imRoad).first << "\t" << num;
+		for(imV = (*imRoad).second.mV.begin(); imV != (*imRoad).second.mV.end(); imV++)
+		{
+			for(iv = (*imV).second.begin(); iv != (*imV).second.end(); iv++)
+			{
+				ofile << setprecision(15) << "\t" << (*imV).first << "\t" << *iv;
+			}
 		}
 		ofile << endl;
 	}
 	ofile.close();
+	
+	cout << "Writing Driver Raw Speed File" << endl;
+	ofstream ofDS(("../data/" + conf.city + "/" + conf.city + "DriverSpeed").c_str());
+	ofDS << vDriver.size() << endl;
+	vector<driver>::iterator	ivDriver;
+	vector<int>::iterator		ivRoad;
+	vector<double>::iterator	ivTime;
+	vector<int>::iterator		ivSpeed;
+	map<int, vector<double> >::iterator imRVtmp;	
+	for(ivDriver = vDriver.begin(); ivDriver != vDriver.end(); ivDriver++)
+	{
+		ofDS << setprecision(15) << (*ivDriver).driverID << "\t" << (*ivDriver).vRoad.size();
+		for(ivRoad = (*ivDriver).vRoad.begin(), ivTime = (*ivDriver).vTime.begin(), ivSpeed = (*ivDriver).vSpeed.begin(); ivRoad != (*ivDriver).vRoad.end(); ivRoad++, ivTime++, ivSpeed++)
+		{
+			ofDS << "\t" << *ivRoad << "\t" << *ivTime << "\t" << *ivSpeed;
+		}
+		ofDS << endl;
+	}
+	ofDS.close();
 }
 
 void RoadNetwork::testGraph()
@@ -449,7 +509,7 @@ int	RoadNetwork::readSpeed()
 	cout << "Reading Raw Speed file" << endl;
 	map<int,int> mVP;	//speed number, count
 	map<int,int>::iterator imVP;
-	int lineNum, sNum, i, j, v, h, m, dt;
+	int lineNum, sNum, i, j, v, h, m, dt, sec;
 	double roadID, t;
 	stringstream ss;
 	inS >> lineNum;
@@ -460,26 +520,19 @@ int	RoadNetwork::readSpeed()
 	{
 		inS >> roadID;
 		inS >> sNum;
-/*		if(sNum > e)	//Count speed number on each road
-			e = sNum;
-		if(mVP.find(sNum) == mVP.end())
-			mVP[sNum] = 1;
-		else
-			mVP[sNum]++;*/
 		for(j = 0; j < sNum; j++)
 		{
-			inS >> t >> h >> m >> v;
+			inS >> t >> h >> m >> sec >> v;
 			if(v == 0)
 				continue;
-			dt = 60*h + m;
-		//	inS >> t >> v;
+			dt = 60 * 60 * h + 60 * m + sec;
 			string ct;
 			ss.clear();
 			ss.str("");
 			ss << t;
 			ss >> ct;
-//			g.mRoad[roadID].mV[t] = v;
 			g.mRoad[roadID].mGraV[dt / T].push_back(v);
+			g.mRoad[roadID].mVC[dt / T] = 0;
 		}
 	}
 	inS.close();
@@ -512,6 +565,8 @@ int	RoadNetwork::readSpeed()
 				cout << endl;
 			}
 		}*/
+		for(i = 0; i < T; i++)			//Init mVC to 0
+			(*imRoad).second.mVC[i] = 0;
 		for(imGraV = (*imRoad).second.mGraV.begin(); imGraV != (*imRoad).second.mGraV.end(); imGraV++)
 		{
 			count = 0;
@@ -544,7 +599,12 @@ int	RoadNetwork::readSpeed()
 	cout << "Sum:" << sum << endl;
 	cout << "Road num:" << g.mRoad.size() << endl;
 
-	ofstream ofile((conf.city + "AvgSpeed").c_str());
+	string sTN;
+	ss.clear();
+	ss.str("");
+	ss << TN;
+	ss >> sTN;
+	ofstream ofile(("../data/" + conf.city + "/" + conf.city + "AvgSpeed" + sTN).c_str());
 	map<int, double>::iterator imAvgV;	
 	for(imRoad = g.mRoad.begin(); imRoad != g.mRoad.end(); imRoad++)
 	{
@@ -613,8 +673,8 @@ int RoadNetwork::readAvgSpeed(map<int, vector<int> > &mTNumRoad)
 		return -1;
 	}
 	cout << "Reading Average Speed file" << endl;
-	T = 60 * conf.h + conf.m;
-	TN = 24 * 60 / (60 * conf.h + conf.m);
+	T = 60 * 60 * conf.h + 60 * conf.m;
+	TN = 24 * 60 * 60 / (60 * 60 * conf.h + 60 * conf.m);
 
 	int i, roadID, num, t;
 	double v;
@@ -674,8 +734,8 @@ void RoadNetwork::fillVoidSpeedST(map<int, vector<int> > &mTNumRoad)
 	int roadID;
 
 //	while(!qRoad.empty() && mVisited.size() != g.mRoad.size())
-//	while(!qRoad.empty() && mVisited.size() != 294100)
 	while(!qRoad.empty() && mVisited.size() != 294120)
+//	while(!qRoad.empty() && mVisited.size() != 294120)
 	{
 		roadID = qRoad.front();
 		qRoad.pop();
@@ -794,12 +854,8 @@ void RoadNetwork::fillVoidSpeedST(map<int, vector<int> > &mTNumRoad)
 		ofCOST << setprecision(15) << (*imRoad).first << "\t" << (*imRoad).second.mAvgV.size();
 		for(imAvgV = (*imRoad).second.mAvgV.begin(); imAvgV != (*imRoad).second.mAvgV.end(); imAvgV++)
 		{
-//			if((*imAvgV).second == 0)
-//				(*imAvgV).second = 0.1;
-//			(*imRoad).second.mCost[(*imAvgV).first] = (*imRoad).second.length / ((*imAvgV).second * 3.6);
 			ofile << setprecision(15) << "\t" << (*imAvgV).first << "\t" << (*imAvgV).second;
-			ofCOST << setprecision(15) << "\t" << (*imAvgV).first << "\t" << (((*imRoad).second.length) / ((*imAvgV).second / 3.6)) / 60;	//Minutes
-//			ofCOST << setprecision(15) << "\t" << (*imAvgV).first << "\t" << (*imRoad).second.length / ((*imAvgV).second / 3.6) << "\t" << (*imRoad).second.length << "\t" << (*imAvgV).second;
+			ofCOST << setprecision(15) << "\t" << (*imAvgV).first << "\t" << (((*imRoad).second.length) / ((*imAvgV).second / 3.6));	//second
 		}
 		ofile << endl;
 		ofCOST << endl;
@@ -895,6 +951,7 @@ int RoadNetwork::readTotalAvgSpeed()
 			ifile >> t;
 			ifile >> v;
 			g.mRoad[roadID].mAvgV[t] = v;
+			g.mRoad[roadID].mVC[t] = 0;
 		}
 	}
 	ifile.close();
@@ -997,47 +1054,31 @@ double RoadNetwork::shortestTimeDij(double ID1, double ID2, int t1, vector<int>&
 	map<int, double>::iterator imCost;
 	double dtmp, ttmp;
 	vTime[nID1] = 0;
-	int tt = (int)(t1 / T);
+	int timeSlot = (int)(t1/T);
 	for(imNR = g.mNode[ID1].mSubNeighborRoad.begin(); imNR != g.mNode[ID1].mSubNeighborRoad.end(); imNR++)
 	{
-/*			cout << "init1:" << g.mRoad[(*imNR).second].mCost[tt] << "\t" << tt << "\t" << (*imNR).second << endl;	//used time
-			cout << "cost size:" << g.mRoad[(*imNR).second].mCost.size() <<  endl;
-			for(imCost = g.mRoad[(*imNR).second].mCost.begin(); imCost != g.mRoad[(*imNR).second].mCost.end(); imCost++)
-				cout << (*imCost).first << "\t" << (*imCost).second << "\t";
-			cout << endl;
-	for(imRoad = g.mRoad.begin(); imRoad != g.mRoad.end(); imRoad++)
-	{
-		cout << setprecision(15) << (*imRoad).first << "\t" << (*imRoad).second.mCost.size();
-		for(imCost = (*imRoad).second.mCost.begin(); imCost != (*imRoad).second.mCost.end(); imCost++)
+		double cost = g.mRoad[(*imNR).second].mCost[timeSlot];
+		if(t1+cost <= (timeSlot+1)*T)
 		{
-			cout << "\t" << (*imCost).first << "\t" << (*imCost).second;
-		}
-		cout << endl;
-	}*/
-		if((int)((t1 + g.mRoad[(*imNR).second].mCost[tt]) / T) == tt)	//does not exceed to next interval
-		{
-			vTime[mIDTrans[(*imNR).first]] = g.mRoad[(*imNR).second].mCost[tt];	//used time
-			vT[mIDTrans[(*imNR).first]] += g.mRoad[(*imNR).second].mCost[tt];	//current
+			vTime[mIDTrans[(*imNR).first]] = cost;	//used time
+			vT[mIDTrans[(*imNR).first]] += cost;	//current
 			h hh;
-			hh.pif = make_pair(mIDTrans[(*imNR).first], g.mRoad[(*imNR).second].mCost[tt]);
+			hh.pif = make_pair(mIDTrans[(*imNR).first], cost);
 			qh.push(hh);
 			vPrevious[mIDTrans[(*imNR).first]] = mIDTrans[ID1];
 		}
 		else
 		{
-			dtmp = g.mRoad[(*imNR).second].length - g.mRoad[(*imNR).second].mAvgV[tt] / 0.06 * (((tt + 1) * T - t1));
-			ttmp = dtmp / (g.mRoad[(*imNR).second].mAvgV[(tt + 1) % TN] / 0.06) + (tt + 1) * T;
-			if(ttmp < 0)
-			{
-//				cout << "init" << endl;
-			}
+			double v = g.mRoad[(*imNR).second].mAvgV[timeSlot] / 3.6;
+			dtmp = g.mRoad[(*imNR).second].length - v * (((timeSlot + 1) * T - t1));
+			ttmp = dtmp / (g.mRoad[(*imNR).second].mAvgV[(timeSlot + 1) % TN] / 3.6) + (timeSlot + 1) * T;
 			vTime[mIDTrans[(*imNR).first]] = ttmp - t1;
 			h hh;
 			hh.pif = make_pair(mIDTrans[(*imNR).first], ttmp - t1);
 			qh.push(hh);
 			vPrevious[mIDTrans[(*imNR).first]] = mIDTrans[ID1];
-			if(ttmp > 24 * 60)
-				ttmp -= 24 * 60;
+			if(ttmp > 24 * 60 * 60)
+				ttmp -= 24 * 60 * 60;
 			vT[nID1] = ttmp;
 		}
 	}
@@ -1057,21 +1098,22 @@ double RoadNetwork::shortestTimeDij(double ID1, double ID2, int t1, vector<int>&
 			if((int)((vT[pu.first] + g.mRoad[(*imNR).second].mCost[(int)(vT[pu.first] / T)]) / T) == (int)(vT[pu.first] / T))
 			{
 				ttmp = pu.second + g.mRoad[(*imNR).second].mCost[(int)(vT[pu.first] / T)];
-//				cout << "ttmp original1:" << ttmp << "\t" << (int)(vT[pu.first]/T ) << "\t" << g.mRoad[(*imNR).second].mCost[(int)(vT[pu.first] / T)] << "\t" << (*imNR).second <<endl;
-//				cout << "pu second:" << pu.second << "\t" << g.mRoad[(*imNR).second].mCost[(int)(vT[pu.first] / T)] << endl;
-//				cout << "!!ttmp:" << ttmp << endl;
 			}
 			else
 			{
-				dtmp = g.mRoad[(*imNR).second].length -  g.mRoad[(*imNR).second].mAvgV[(int)(vT[pu.first] / T)] / 3.6 * (((((int)(vT[pu.first] / T) + 1) * T - vT[pu.first])) * T);
-//				cout << "dtmp:" << dtmp << endl;
-				ttmp = dtmp / (g.mRoad[(*imNR).second].mAvgV[((int)(vT[pu.first] / T) + 1) % TN] / 3.6) / 60 + (((int)(vT[pu.first] / T) + 1) * T  - t1);
-//				cout << "ttmp original2:" << ttmp << endl;
+				double v = g.mRoad[(*imNR).second].mAvgV[(int)(vT[pu.first]/T)]/3.6;
+				cout << "tfirst:" << (int)((vT[pu.first]/T)) << "\t ta:" << endl;
+				double ti = (((int)(vT[pu.first]/T) + 1)*T - vT[pu.first]) * T;
+				cout << "v:" << v << "\tti:" << ti << endl;
+				cout << "road length:" << g.mRoad[(*imNR).second].length << endl;
+				dtmp = g.mRoad[(*imNR).second].length - v * ti;
+				cout << "dtmp:" << dtmp << endl;
+				ttmp = dtmp / (g.mRoad[(*imNR).second].mAvgV[((int)(vT[pu.first] / T) + 1) % TN] / 3.6) + (((int)(vT[pu.first] / T) + 1) * T  - t1);
 				if(ttmp < 0)
 				{
 					cout << "length:" <<  g.mRoad[(*imNR).second].length << endl;
 					cout << "v:" <<  g.mRoad[(*imNR).second].mAvgV[(int)(vT[pu.first] / T)] / 3.6 << endl;
-					cout << "t:" << (((((int)(vT[pu.first] / T) + 1) * T - vT[pu.first])) * 60) << endl;
+					cout << "t:" << ((int)(vT[pu.first] / T) + 1) * T - vT[pu.first] << endl;
 				}		
 			}
 
@@ -1084,8 +1126,8 @@ double RoadNetwork::shortestTimeDij(double ID1, double ID2, int t1, vector<int>&
 //				cout << "ttmp1:" << ttmp << endl;
 				qh.push(hh);
 				vPrevious[mIDTrans[(*imNR).first]] = pu.first;
-				if(t1 + ttmp > 24*60)
-					vT[mIDTrans[(*imNR).first]] = t1 + ttmp - 24*60;
+				if(t1 + ttmp > 24*60*60)
+					vT[mIDTrans[(*imNR).first]] = t1 + ttmp - 24*60*60;
 				else
 					vT[mIDTrans[(*imNR).first]] = t1 + ttmp;
 			}
@@ -1095,8 +1137,8 @@ double RoadNetwork::shortestTimeDij(double ID1, double ID2, int t1, vector<int>&
 //				vTime[mIDTrans[(*imNR).first]] = vTime[pu.first] + ttmp;
 				vTime[mIDTrans[(*imNR).first]] = ttmp;
 //				cout << "ttmp2:" << ttmp << endl;
-				if(t1 + ttmp > 24*60)
-					vT[mIDTrans[(*imNR).first]] = t1 + ttmp - 24*60;
+				if(t1 + ttmp > 24*60*60)
+					vT[mIDTrans[(*imNR).first]] = t1 + ttmp - 24*60*60;
 				else
 					vT[mIDTrans[(*imNR).first]] = t1 + ttmp;
 				vPrevious[mIDTrans[(*imNR).first]] = pu.first;
@@ -1284,7 +1326,7 @@ void RoadNetwork::testDijA()
 void RoadNetwork::testTimeDij()
 {
 	vector<pair<double, double> > vpNode;
-//	vpNode = generateNodePair(conf.testNum);
+	vpNode = generateNodePair(conf.testNum);
 	vector<pair<double, double> >::iterator ivpNode;
 	vector<int> vRoadList;
 	vector<int>::iterator ivRL;
@@ -1292,19 +1334,19 @@ void RoadNetwork::testTimeDij()
 	vector<int>::iterator ivTime;
 	srand((unsigned)time(0));
 	int i;
-/*	for(i = 0; i < conf.testNum; i++)
+	for(i = 0; i < conf.testNum; i++)
 	{
-		vTime.push_back(rand() % (24 * 60));
-	}*/
+		vTime.push_back(rand() % (24 * 60 * 60));
+	}
 
 	double a,b, t;
 	ifstream ifile("testPair");
-	for(i = 0; i < 10; i++)
+/*	for(i = 0; i < 10; i++)
 	{
 		ifile >> a >> b >> t;
 		vpNode.push_back(make_pair(a,b));
 		vTime.push_back(t);
-	}
+	}*/
 	ifile.close();
 	i = 1;
 	vector<double> vRTime, vRTakeTime;
@@ -1316,6 +1358,7 @@ void RoadNetwork::testTimeDij()
 	vector<double> vT;
 	vector<double>::iterator ivD, ivT;
 	double d;
+	ofstream oPair("testPair");
 	for(ivpNode = vpNode.begin(), ivTime = vTime.begin(); ivpNode != vpNode.end(); ivpNode++, i++, ivTime++)
 	{
 		vRoadList.clear();
@@ -1330,6 +1373,7 @@ void RoadNetwork::testTimeDij()
 		vRoadList.clear();
 		vRTime.clear();
 		vRTakeTime.clear();
+		cout << (*ivpNode).first << "\t" << (*ivpNode).second << "\t" << (*ivTime) << endl;
 		t = shortestTimeDij((*ivpNode).first, (*ivpNode).second, *ivTime, vRoadList, vRTime, vRTakeTime, d);
 		if (t <= 0)
 		{
@@ -1341,16 +1385,17 @@ void RoadNetwork::testTimeDij()
 		cout << endl << "Test " << i << endl;
 		cout << setprecision(15) << (*ivpNode).first << "\t" << (*ivpNode).second << endl;
 		cout << setprecision(15)  << "coordinate:" << endl << g.mNode[(*ivpNode).first].x << "\t" << g.mNode[(*ivpNode).first].y << endl << g.mNode[(*ivpNode).second].x << "\t" << g.mNode[(*ivpNode).second].y << endl;
-		cout << "input time:" << (int)((*ivTime) / 60) << "h " << (*ivTime) % 60 << "min" << endl;
+		cout << "input time:" << (int)((*ivTime) / 3600) << "h " << (int)(((*ivTime) % 3600) / 60) << "min\t" << ((*ivTime)%3600)%60 << " second" << endl;
 
-		cout << "Time:" << (int)(t/60) << "hour " << (int)((int)(t)%60) << "minutes" << endl;
+		oPair << (*ivpNode).first << "\t" << (*ivpNode).second << "\t" << (*ivTime) << endl;
+		cout << "Time:" << (int)(t/3600) << "hour " << (int)(((int)(t)%3600)/60) << "minutes\t" << ((*ivTime)%3600)%60 << " second"<< endl;
 		cout << "Distance:" << d << endl;
 		vT.push_back(t);
 		vD.push_back(d);
 		for(ivRL = vRoadList.begin(), ivRT = vRTime.begin(), ivRTT = vRTakeTime.begin(); ivRL != vRoadList.end(); ivRL++, ivRT++, ivRTT++)
 		{
-			cout << *ivRL << "\t" << g.mRoad[*ivRL].length << "\tstart time:" << (int)((*ivRT) / 60) <<"h " << (int)((int)(*ivRT) % 60) << "min "<< endl;
-			cout << setprecision(7)<< "\ttake time:" << *ivRTT << "min\t" << g.mNode[g.mRoad[*ivRL].ID1].x << "\t" << g.mNode[g.mRoad[*ivRL].ID1].y << "\t" << g.mNode[g.mRoad[*ivRL].ID2].x << "\t" << g.mNode[g.mRoad[*ivRL].ID2].y << endl; 
+			cout << *ivRL << "\t" << g.mRoad[*ivRL].length << "\tstart time:" << (int)((*ivRT) / 3600) <<"h " << (int)(((int)(*ivRT) % 3600)/60) << "min "<< ((*ivTime)%3600)%60 << " second" << endl;
+			cout << setprecision(7)<< "\ttake time:" << *ivRTT << "second\t" << g.mNode[g.mRoad[*ivRL].ID1].x << "\t" << g.mNode[g.mRoad[*ivRL].ID1].y << "\t" << g.mNode[g.mRoad[*ivRL].ID2].x << "\t" << g.mNode[g.mRoad[*ivRL].ID2].y << endl; 
 		}
 	}
     stop = clock();
@@ -1428,13 +1473,14 @@ void RoadNetwork::speedRawClassify()
 	ss.str("");
 	ss << TN;
 	ss >> sTN;
-	ofstream ofAvg((conf.city+"SpeedAvg"+sTN).c_str());
-	ofstream ofDev((conf.city+"SpeedDev"+sTN).c_str());
+	ofstream ofAvg(("../data/" + conf.city + "/" + conf.city+"SpeedAvg"+sTN).c_str());
+	ofstream ofDev(("../data/" + conf.city + "/" + conf.city+"SpeedDev"+sTN).c_str());
 	cout << "Writing " << conf.city << "Speed classification" << endl;
 	int i, count, span, min, max;
 	vector<double> vtmp;
 	vector<double>::iterator ivtmp;
 	double v;
+	
 	for(imRoad = g.mRoad.begin(); imRoad != g.mRoad.end(); imRoad++)
 	{
 		for(imGraV = (*imRoad).second.mGraV.begin(); imGraV != (*imRoad).second.mGraV.end(); imGraV++)
@@ -1450,6 +1496,7 @@ void RoadNetwork::speedRawClassify()
 				}
 				v = (double)(count) / (double)(i);
 				ofAvg << setprecision(15) << (*imRoad).first << "\t" << (*imGraV).first << "\t" << v << endl;
+				g.mRoad[(*imRoad).first].mVC[(*imGraV).first] = 0;
 			}
 			else
 			{
@@ -1457,8 +1504,6 @@ void RoadNetwork::speedRawClassify()
 				min = 99999999;
 				for(iv = (*imGraV).second.begin(); iv != (*imGraV).second.end(); iv++)
 				{
-					if((*imRoad).first == 6619385)
-						cout << *iv << endl;
 					if(*iv > max)
 						max = *iv;
 					if(*iv < min)
@@ -1468,6 +1513,7 @@ void RoadNetwork::speedRawClassify()
 				if(span == 0)
 				{
 					ofAvg << setprecision(15) << (*imRoad).first << "\t" << (*imGraV).first << max << endl;
+					g.mRoad[(*imRoad).first].mVC[(*imGraV).first] = 0;
 					continue;
 				}
 
@@ -1484,13 +1530,1004 @@ void RoadNetwork::speedRawClassify()
 					accum  += (*ivtmp - mean) * (*ivtmp - mean);
 				}
 				double dev = accum / (double)(vtmp.size());
-				if((*imRoad).first == 6619385)
-					cout << mean << "\t" << accum << "\t" << (double)(vtmp.size()) << "\t" << dev << endl;
 				ofDev << setprecision(15) << (*imRoad).first << "\t" << (*imGraV).first << "\t" << mean << "\t" << dev << endl;
+				int CID;	//this CID is temporal, just for init use
+				if(dev < 0.23)
+				{
+					CID = (int)(mean / 0.1 - 1) * 23 + (int)(dev / 0.01); 
+				}
+				else
+					CID = (int)(mean / 0.1 - 1) * 23 + 23; 
+
+				if(mRCU.find(CID) != mRCU.end())
+				{
+					mRCU[CID].vpRT.push_back(make_pair((*imRoad).first, (*imGraV).first));
+				}
+				else
+				{
+					rcu r;
+					r.avg = (double)((int)(mean/0.1)) / 10;
+					r.dev = (double)((int)(dev/0.01)) / 100;
+					r.vpRT.push_back(make_pair((*imRoad).first, (*imGraV).first));
+					mRCU[CID] = r;
+				}
+			}
+		}
+	}
+	ofAvg.close();
+	ofDev.close();
+
+	vector<pair<int, int> >::iterator ivpRT;
+	ofstream ofRC(("../data/" + conf.city + "/" + conf.city+"RC"+sTN).c_str());
+	ofRC << mRCU.size() << endl;
+	int j = 0;
+	for(i = 0; i <= 200; i++)
+	{
+		if(mRCU.find(i) != mRCU.end())
+		{
+			j++;
+			ofRC << j << "\t" << mRCU[i].avg << "\t" << mRCU[i].dev << "\t" << mRCU[i].vpRT.size();
+			for(ivpRT = mRCU[i].vpRT.begin(); ivpRT != mRCU[i].vpRT.end(); ivpRT++)
+			{
+				ofRC  << "\t" << (*ivpRT).first << "\t" << (*ivpRT).second;
+			}
+			ofRC << endl;
+		}
+	}
+
+	ofRC.close();
+}
+	
+void RoadNetwork::driverAttach()
+{
+	readSpeed();
+	readRC();
+	calMinSpan();
+	readDriverSpeed();
+}
+
+void RoadNetwork::calMinSpan()
+{
+	map<double, roadInfo>::iterator imRoad;
+	map<int, int>::iterator			imVC;
+	vector<double>::iterator		iv;
+	int max, min;
+	int count = 0;
+	bool b = true;
+	for(imRoad = g.mRoad.begin(); imRoad != g.mRoad.end(); imRoad++)
+	{
+		b = true;
+		for(imVC = (*imRoad).second.mVC.begin(); imVC != (*imRoad).second.mVC.end(); imVC++)
+		{
+			if((*imVC).second != 0)
+			{
+				if(b)
+				{
+					b = false;
+					count ++;
+				}
+				max = 0;
+				min = 99999999;
+				for(iv = (*imRoad).second.mGraV[(*imVC).first].begin(); iv != (*imRoad).second.mGraV[(*imVC).first].end(); iv++)
+				{
+					if(*iv > max)
+						max = *iv;
+					if(*iv < min)
+						min = *iv;
+				}
+				(*imRoad).second.mSpanV[(*imVC).first] = max - min;
+				(*imRoad).second.mMinV[(*imVC).first] = min;
+			}
+		}
+	}
+	
+	stringstream ss;
+	string sTN;
+	ss.clear();
+	ss.str("");
+	ss << TN;
+	ss >> sTN;
+	ofstream ofile(("../data/" + conf.city + "/" + conf.city + "MS" + sTN).c_str());
+	map<int, double>::iterator	imMinV;
+	map<int, double>::iterator	imSpanV;
+	ofile << count << endl;
+	for(imRoad = g.mRoad.begin(); imRoad != g.mRoad.end(); imRoad++)
+	{
+		if((*imRoad).second.mMinV.size() != 0)
+		{
+			ofile << setprecision(15) << (*imRoad).first << "\t" << (*imRoad).second.mMinV.size();
+			for(imMinV = (*imRoad).second.mMinV.begin(), imSpanV = (*imRoad).second.mSpanV.begin(); imMinV != (*imRoad).second.mMinV.end(); imMinV++, imSpanV++)
+			{
+				ofile << "\t" << (*imMinV).first << "\t" << (*imMinV).second << "\t" << (*imSpanV).second;
+			}
+			ofile << endl;
+		}
+	}
+	ofile.close();
+}
+	
+void RoadNetwork::readRC()
+{
+	stringstream ss;
+	string sTN;
+	ss.clear();
+	ss.str("");
+	ss << TN;
+	ss >> sTN;
+	ifstream iFRC(("../data/" + conf.city + "/" + conf.city + "RC" + sTN).c_str());
+	int n1, n2;
+	iFRC >> n1;
+	int i, j;
+	int rid, t, type;
+	for(i = 0; i < n1; i++)
+	{
+		rcu r;
+		iFRC >> type >> r.avg >> r.dev;
+		iFRC >> n2;
+		for(j = 0; j < n2; j++)
+		{
+			iFRC >> rid >> t;
+			r.vpRT.push_back(make_pair(rid, t));
+			g.mRoad[rid].mVC[t] = type;
+		}
+		mRCU[type] = r;
+	}
+
+/*	map<double, roadInfo>::iterator		imRoad;
+	map<int, int>::iterator				imVC;
+	for(imRoad = g.mRoad.begin(); imRoad != g.mRoad.end(); imRoad++)
+	{
+		cout << setprecision(15) << (*imRoad).first;
+		for(imVC = (*imRoad).second.mVC.begin(); imVC != (*imRoad).second.mVC.end(); imVC++)
+		{
+			cout << "\t" << (*imVC).first << "\t" << (*imVC).second;
+		}
+		cout << endl;
+	}*/
+}
+
+int RoadNetwork::readDriverSpeed()
+{
+	ifstream inDS(("../data/"+conf.city+"/"+conf.city+"DriverSpeedTime").c_str());
+	if(!inDS)
+	{
+		cout << "Cannot open driver speed time file" << endl;
+		return -1;
+	}
+
+	string stmp;
+	stringstream ss;
+	vector<string> vs, vL, vT, vV;
+	int i, V, j, k, lnum, dnum, il, hour, min, sec;
+	double L;
+	j = 0;
+	k = 0;
+	map<double, double>	mDD;	//map the original car ID to driverID
+	double dID, oid;
+	vector<double>::iterator iv;
+	cout << "Reading driver speed time" << endl;
+	inDS >> lnum;
+	for(il = 0; il < lnum; il++)
+	{
+		inDS >> oid >> dnum;
+		if(mDD.find(oid) == mDD.end())
+		{
+			mDD[oid] = k;
+			dID = k;
+			driver d;
+			d.driverID = dID;
+			vDriver.push_back(d);
+			k++;
+		}
+		else
+		{
+			dID = mDD[oid];
+		}
+
+		for(i = 0; i < dnum; i++)
+		{
+			inDS >> L >> hour >> min >> sec >> V;
+			if(V == 0)
+				continue;
+			if(g.mRoad.find(L) == g.mRoad.end())
+				continue;
+			int ttmp = hour * 60 * 60 + min * 60 + sec;
+			int cid = g.mRoad[L].mVC[(int)(ttmp / T)];
+			if(cid != 0)
+			{
+				double vr = (double)((double)V-g.mRoad[L].mMinV[(int)(ttmp/T)]) / g.mRoad[L].mSpanV[(int)(ttmp/T)];
+				if(vr < 0)
+				{
+					cout << vr << setprecision(15) << "\t" << V << "\t" << g.mRoad[L].mMinV[(int)(ttmp/T)] << "\t" << g.mRoad[L].mSpanV[(int)(ttmp/T)] << endl;
+					cout << "roadID:" << L << "\tTimeslot:" << (int)(ttmp/T)<< "\t" << hour << "\t" << min << "\t" << ttmp << "\t" << T << endl;
+					for(iv = g.mRoad[L].mGraV[(int)(ttmp/T)].begin(); iv != g.mRoad[L].mGraV[(int)(ttmp/T)].end(); iv++)
+						cout << *iv << "\t";
+					cout << endl;
+				}
+
+				vDriver[dID].mRVtmp[cid].push_back(vr);
+			}
+		}
+		vL.clear();
+		vT.clear();
+		vV.clear();
+		vs.clear();
+		j++;
+	}
+	inDS.close();
+
+	string sTN;
+	ss.clear();
+	ss.str("");
+	ss << TN;
+	ss >> sTN;
+	ofstream ofile(("../data/" + conf.city + "/" + conf.city + "DriverRCDetail" + sTN).c_str());
+	ofile << vDriver.size() << endl;
+
+	vector<driver>::iterator ivDriver;
+	map<int, vector<double> >::iterator imRVtmp;	
+	for(ivDriver = vDriver.begin(); ivDriver != vDriver.end(); ivDriver++)
+	{
+		ofile << setprecision(15) << (*ivDriver).driverID << "\t" << (*ivDriver).mRVtmp.size();
+		for(imRVtmp = (*ivDriver).mRVtmp.begin(); imRVtmp != (*ivDriver).mRVtmp.end(); imRVtmp++)
+		{
+			ofile << setprecision(15) << "\t" << (*imRVtmp).first << "\t" << (*imRVtmp).second.size();
+			for(iv = (*imRVtmp).second.begin(); iv != (*imRVtmp).second.end(); iv++)
+			{
+				ofile << "\t" << *iv;
+			}
+		}
+		ofile << endl;
+	}
+	ofile.close();
+	return 0;
+}
+	
+int	RoadNetwork::driverAvg()
+{
+	readRC();
+	stringstream ss;
+	string sTN;
+	ss.clear();
+	ss.str("");
+	ss << TN;
+	ss >> sTN;
+	ifstream ifDRC(("../data/" + conf.city + "/" + conf.city + "DriverRCDetail" + sTN).c_str());
+	if(!ifDRC)
+	{
+		cout << "Cannot open driver RC detail file" << endl;
+		return -1;
+	}
+
+	int num1, num2, num3, i, j, k, t;
+	double v, vtmp;
+	ifDRC >> num1;
+	for(i = 0 ; i < num1; i++)
+	{
+		driver d;
+		ifDRC >> d.driverID;
+		ifDRC >> num2;
+		for(j = 0; j < num2; j++)
+		{
+			ifDRC >> t;
+			ifDRC >> num3;
+			v = 0;
+			for(k = 0; k < num3; k++)
+			{
+				ifDRC >> vtmp;
+				v += vtmp;
+			}
+			v = v / num3;
+			d.mRV[t] = v;
+		}
+		vDriver.push_back(d);
+	}
+	ifDRC.close();
+
+	cout << "Writing driver avg speed file" << endl;
+	ofstream ofile(("../data/" + conf.city + "/" + conf.city + "DriverRC" + sTN).c_str());
+	vector<driver>::iterator ivD;
+	map<int, double>::iterator imRV;
+	ofile << vDriver.size() << "\t" << mRCU.size() << endl;
+	for(ivD = vDriver.begin(); ivD != vDriver.end(); ivD++)
+	{
+		ofile << (*ivD).driverID << "\t" << (*ivD).mRV.size();
+		for(imRV = (*ivD).mRV.begin(); imRV != (*ivD).mRV.end(); imRV++)
+		{
+			ofile << "\t" << (*imRV).first << "\t" << (*imRV).second;
+		}
+		ofile << endl;
+	}
+}
+	
+void RoadNetwork::testDriverFastest()
+{
+	readDriver();
+	//readTestSet();
+	//tests
+}
+	
+void RoadNetwork::readDriver()
+{
+	readTotalAvgSpeed();
+	readMinSpan();
+	readRC();
+	readDriverProfile();
+}
+
+int	RoadNetwork::readMinSpan()
+{
+	stringstream ss;
+	string sTN;
+	ss.clear();
+	ss.str("");
+	ss << TN;
+	ss >> sTN;
+	ifstream ifMS(("../data/" + conf.city + "/" + conf.city + "MS" + sTN).c_str());
+	if(!ifMS)
+	{
+		cout << "Cannot open min span file" << endl;
+		return -1;
+	}
+
+	int num1, num2, i, j, t, min, span;
+	double roadID;
+	ifMS >> num1;
+	for(i = 0 ; i < num1; i++)
+	{
+		ifMS >> roadID >> num2;
+		for(j = 0; j < num2; j++)
+		{
+			ifMS >> t >> min >> span;
+			g.mRoad[roadID].mMinV[t] = min;
+			g.mRoad[roadID].mSpanV[t] = span;
+		}
+	}
+	ifMS.close();
+}
+	
+int	RoadNetwork::readDriverProfile()
+{
+	stringstream ss;
+	string sTN;
+	ss.clear();
+	ss.str("");
+	ss << TN;
+	ss >> sTN;
+
+	ifstream ifDRCF(("../data/" + conf.city + "/" + conf.city + "DriverRC" + sTN + "Final").c_str());
+	if(!ifDRCF)
+	{
+		cout << "Cannot open driver RC Final file" << endl;
+		return -1;
+	}
+
+	cout << "Reading Driver RC Final file" << endl;
+	int num1, num2, i, j, t;
+	double v;
+	int driverID;
+	ifDRCF >> num1;
+	for(i = 0 ; i < num1; i++)	//For 24 data format
+	{
+		driver d;
+		ifDRCF >> d.driverID;
+		ifDRCF >> num2;
+		for(j = 0; j < num2; j++)
+		{
+			ifDRCF >> t;
+			ifDRCF >> v;
+			d.mRV[t] = v;
+		}
+		vDriver.push_back(d);
+	}
+
+/*	ifDRCF >> num1 >> num2;	//For 48 data format
+	cout << "vDriver size:" << vDriver.size() << endl;
+	cout << num1 << "\t" << num2 << endl;
+	for(i = 0 ; i <= num1; i++)		
+	{
+		driver d;
+		d.driverID = i;
+//		ifDRCF >> d.driverID;
+		for(j = 0; j < num2; j++)
+		{
+			ifDRCF >> v;
+			d.mRV[j+1] = v;
+	//		cout << "i:" << i << "j:" << j << endl;
+		}
+		vDriver.push_back(d);
+	}*/
+	cout << "vDriver size:" << vDriver.size() << endl;
+	ifDRCF.close();
+	
+	ifstream ifDRC(("../data/" + conf.city + "/" + conf.city + "DriverRC" + sTN).c_str());
+	if(!ifDRC)
+	{
+		cout << "Cannot open driver RC file" << endl;
+		return -1;
+	}
+
+	cout << "Reading Driver RC file" << endl;
+	ifDRC >> num1;
+	for(i = 0 ; i < num1; i++)
+	{
+//		driver d;
+		ifDRC >> driverID;
+		ifDRC >> num2;
+		for(j = 0; j < num2; j++)
+		{
+			ifDRC >> t;
+			ifDRC >> v;
+			vDriver[driverID].mRV[t] = v;
+		}
+//		vDriver.push_back(d);
+	}
+	cout << "vDriver size:" << vDriver.size() << endl;
+	ifDRC.close();
+	
+	return 0;
+}
+	
+double	RoadNetwork::shortestTimeDijDriver(double ID1, double ID2, int t1, vector<int>& vRoadList, vector<double>& vRTime, vector<double>& vRTakeTime, double &d, double driverID)
+{
+	map<int, map<int, double> > mmCost;	//roadID,t,cost for CID>0
+	map<int, map<int, double> > mmV;	//roadID,t,V for CID>0
+	double nID1 = mIDTrans[ID1];
+	double nID2 = mIDTrans[ID2];
+	vector<float> vTime(g.mNode.size(), INF);
+	vector<float>::iterator ivD;
+	vector<double> vT(g.mNode.size(), t1);	//each node's current time
+	priority_queue<h> qh;
+	vector<int> vPrevious(g.mNode.size(), -1);
+	map<double, int>::iterator imNR;
+	map<double, roadInfo>::iterator imRoad;
+
+	map<int, double>::iterator imCost;
+	double dtmp, ttmp;
+	vTime[nID1] = 0;
+	int tt = (int)(t1 / T);
+	double cost;
+	for(imNR = g.mNode[ID1].mSubNeighborRoad.begin(); imNR != g.mNode[ID1].mSubNeighborRoad.end(); imNR++)
+	{
+/*			cout << "init1:" << g.mRoad[(*imNR).second].mCost[tt] << "\t" << tt << "\t" << (*imNR).second << endl;	//used time
+			cout << "cost size:" << g.mRoad[(*imNR).second].mCost.size() <<  endl;
+			for(imCost = g.mRoad[(*imNR).second].mCost.begin(); imCost != g.mRoad[(*imNR).second].mCost.end(); imCost++)
+				cout << (*imCost).first << "\t" << (*imCost).second << "\t";
+			cout << endl;
+	for(imRoad = g.mRoad.begin(); imRoad != g.mRoad.end(); imRoad++)
+	{
+		cout << setprecision(15) << (*imRoad).first << "\t" << (*imRoad).second.mCost.size();
+		for(imCost = (*imRoad).second.mCost.begin(); imCost != (*imRoad).second.mCost.end(); imCost++)
+		{
+			cout << "\t" << (*imCost).first << "\t" << (*imCost).second;
+		}
+		cout << endl;
+	}*/
+		cost = getDriverCost(driverID, (*imNR).second, tt, mmCost, mmV);
+		if((int)((t1 + cost) / T) == tt)	//does not exceed to next interval
+		{
+			vTime[mIDTrans[(*imNR).first]] = cost;	//used time
+			vT[mIDTrans[(*imNR).first]] += cost;	//current
+			h hh;
+			hh.pif = make_pair(mIDTrans[(*imNR).first], cost);
+			qh.push(hh);
+			vPrevious[mIDTrans[(*imNR).first]] = mIDTrans[ID1];
+		}
+		else
+		{
+			double v1 = getDriverV(driverID, (*imNR).second, tt, mmV);
+			double v2 = getDriverV(driverID, (*imNR).second, (tt + 1) % TN, mmV);
+			dtmp = g.mRoad[(*imNR).second].length - v1 / 3.6 * (((tt + 1) * T - t1));
+			ttmp = dtmp / (v2 / 3.6) + (tt + 1) * T;
+			if(ttmp < 0)
+			{
+//				cout << "init" << endl;
+			}
+			vTime[mIDTrans[(*imNR).first]] = ttmp - t1;
+			h hh;
+			hh.pif = make_pair(mIDTrans[(*imNR).first], ttmp - t1);
+			qh.push(hh);
+			vPrevious[mIDTrans[(*imNR).first]] = mIDTrans[ID1];
+			if(ttmp > 24 * 60 * 60)
+				ttmp -= 24 * 60 * 60;
+			vT[nID1] = ttmp;
+		}
+	}
+
+	pair<double, float> pu;
+	double ts, te;
+	while(!qh.empty())
+	{
+		pu = qh.top().pif;
+		qh.pop();
+		
+		if(pu.first == nID2)
+			break;
+
+		for(imNR = g.mNode[mRIDTrans[pu.first]].mSubNeighborRoad.begin(); imNR != g.mNode[mRIDTrans[pu.first]].mSubNeighborRoad.end(); imNR++)
+		{
+			cost = getDriverCost(driverID, (*imNR).second, (int)(vT[pu.first]/T), mmCost, mmV);
+			if((int)((vT[pu.first] +  cost) / T) == (int)(vT[pu.first] / T))
+			{
+				ttmp = pu.second + cost;
+//				cout << "ttmp original1:" << ttmp << "\t" << (int)(vT[pu.first]/T ) << "\t" << g.mRoad[(*imNR).second].mCost[(int)(vT[pu.first] / T)] << "\t" << (*imNR).second <<endl;
+//				cout << "pu second:" << pu.second << "\t" << g.mRoad[(*imNR).second].mCost[(int)(vT[pu.first] / T)] << endl;
+//				cout << "!!ttmp:" << ttmp << endl;
+			}
+			else
+			{
+				double v1 = getDriverV(driverID, (*imNR).second, (int)(vT[pu.first]/T), mmV);
+				double v2 = getDriverV(driverID, (*imNR).second, (int)(vT[pu.first]/T) % TN, mmV);
+				dtmp = g.mRoad[(*imNR).second].length -  v1 / 3.6 * (((((int)(vT[pu.first] / T) + 1) * T - vT[pu.first])) * T);
+//				cout << "dtmp:" << dtmp << endl;
+				ttmp = dtmp / (v2 / 3.6) + (((int)(vT[pu.first] / T) + 1) * T  - t1);
+//				cout << "ttmp original2:" << ttmp << endl;
+				if(ttmp < 0)
+				{
+					cout << "length:" <<  g.mRoad[(*imNR).second].length << endl;
+					cout << "v:" <<  v1 / 3.6 << endl;
+					cout << "t:" << ((((int)(vT[pu.first] / T) + 1) * T - vT[pu.first]))  << endl;
+				}		
+			}
+
+//			cout << endl << "ttmp:" << ttmp << endl;
+			if(vTime[mIDTrans[(*imNR).first]] == INF && (*imNR).first != ID1)
+			{
+				vTime[mIDTrans[(*imNR).first]] =  ttmp;
+				h hh;
+				hh.pif = make_pair(mIDTrans[(*imNR).first], ttmp);
+//				cout << "ttmp1:" << ttmp << endl;
+				qh.push(hh);
+				vPrevious[mIDTrans[(*imNR).first]] = pu.first;
+				if(t1 + ttmp > 24*60*60)
+					vT[mIDTrans[(*imNR).first]] = t1 + ttmp - 24*60*60;
+				else
+					vT[mIDTrans[(*imNR).first]] = t1 + ttmp;
+			}
+//			else if(vTime[mIDTrans[(*imNR).first]] > vTime[pu.first] + ttmp)
+			else if(vTime[mIDTrans[(*imNR).first]] > ttmp)
+			{
+//				vTime[mIDTrans[(*imNR).first]] = vTime[pu.first] + ttmp;
+				vTime[mIDTrans[(*imNR).first]] = ttmp;
+//				cout << "ttmp2:" << ttmp << endl;
+				if(t1 + ttmp > 24*60*60)
+					vT[mIDTrans[(*imNR).first]] = t1 + ttmp - 24*60*60;
+				else
+					vT[mIDTrans[(*imNR).first]] = t1 + ttmp;
+				vPrevious[mIDTrans[(*imNR).first]] = pu.first;
+			}
+		}
+	}
+	
+	double id = nID2;
+	double idtmp;
+	vector<int> vRoadListtmp;
+	vector<int>::reverse_iterator irvRL;
+	vector<double> vRTimetmp;
+	vector<double> vRTakeTimetmp;
+	vector<double>::reverse_iterator irvRT;
+	vector<double>::reverse_iterator irvRTT;
+	vT[nID1] = t1;
+	cout << "nID2:" << nID2 << endl;
+	cout << "Time:" << vTime[nID2] << endl;
+//a	if(vTime[nID2] < 0 )
+//		return -1;
+	double dist = 0;
+	if(vTime[nID2] != INF)
+	{	
+		while(id != nID1)
+		{
+			idtmp = vPrevious[id];
+			dist += g.mRoad[g.mNode[mRIDTrans[idtmp]].mSubNeighborRoad[mRIDTrans[id]]].length;
+			vRoadListtmp.push_back(g.mNode[mRIDTrans[idtmp]].mSubNeighborRoad[mRIDTrans[id]]);
+			vRTimetmp.push_back(vT[idtmp]);
+			vRTakeTimetmp.push_back(g.mRoad[g.mNode[mRIDTrans[idtmp]].mSubNeighborRoad[mRIDTrans[id]]].mCost[(int)(vT[idtmp] / T)]);
+			id = idtmp;
+		}
+	}
+	cout << "Distance:" << dist << endl;
+	d = dist;
+
+	for(irvRL = vRoadListtmp.rbegin(); irvRL != vRoadListtmp.rend(); irvRL++)
+	{
+		vRoadList.push_back(*irvRL);
+	}
+
+	for(irvRT = vRTimetmp.rbegin(); irvRT != vRTimetmp.rend(); irvRT++)
+	{
+		vRTime.push_back(*irvRT);
+	}
+	
+	for(irvRTT = vRTakeTimetmp.rbegin(); irvRTT != vRTakeTimetmp.rend(); irvRTT++)
+	{
+		vRTakeTime.push_back(*irvRTT);
+	}
+
+	return vTime[nID2];
+}
+	
+double	RoadNetwork::getDriverCost(int driverID, int roadID, int t, map<int, map<int, double> > &mmCost, map<int, map<int, double> > &mmV)
+{
+	if(g.mRoad[roadID].mVC[t] == 0)
+		return g.mRoad[roadID].mCost[t];
+	else
+	{
+		double v;
+		bool exist = false;
+		if(mmCost.find(roadID) != mmCost.end())
+		{
+			if(mmCost[roadID].find(t) != mmCost[roadID].end())
+			{
+				exist = true;
+				return mmCost[roadID][t];
+			}
+		}
+
+		if(!exist)
+		{
+			v = vDriver[driverID].mRV[g.mRoad[roadID].mVC[t]] * g.mRoad[roadID].mSpanV[t] + g.mRoad[roadID].mMinV[t];
+			mmV[roadID][t] = v;
+			mmCost[roadID][t] = g.mRoad[roadID].length / (v/3.6);
+		}
+		return g.mRoad[roadID].length / (v/3.6);
+	}
+}
+	
+double  RoadNetwork::getDriverV(int driverID, int roadID, int t, map<int, map<int, double> > &mmV)
+{
+	if(g.mRoad[roadID].mVC[t] == 0)
+		return g.mRoad[roadID].mAvgV[t];
+	else
+	{
+		double v;
+		bool exist = false;
+		if(mmV.find(roadID) != mmV.end())
+		{
+			if(mmV[roadID].find(t) != mmV[roadID].end())
+			{
+				exist = true;
+				return  mmV[roadID][t];
+			}
+		}
+
+		if(!exist)
+		{
+			v = vDriver[driverID].mRV[g.mRoad[roadID].mVC[t]] * g.mRoad[roadID].mSpanV[t] + g.mRoad[roadID].mMinV[t];
+		}
+		return v;
+	}
+}
+	
+int RoadNetwork::extractBriefTrajectory()
+{
+	ifstream inTraj(conf.trajectoryFilePath.c_str());
+	cout << conf.trajectoryFilePath << endl;
+	if(!inTraj)
+	{
+		cout << "Cannot open trajectory file" << endl;
+		return -1;
+	}
+
+	string stmp;
+	stringstream ss;
+	vector<string> vs, vT, vL;
+	int i, V, j;
+	double T, L;
+	j = 0;
+	cout << "Extracting Trajectory Brief" << endl;
+	map<string, double>	mDD;	//map the original car ID to driverID
+	double dID;
+	int k = 0, count = 0;
+	while(getline(inTraj, stmp))
+	{
+		if(j % 10000 == 0)
+			cout << j << endl;
+		vs = split(stmp, ",");
+		string oid = vs[2];
+		if(mDD.find(oid) == mDD.end())
+		{
+			mDD[oid] = k;
+			dID = k;
+			driver d;
+			d.driverID = dID;
+			vDriver.push_back(d);
+			k++;
+		}
+		else
+		{
+			dID = mDD[oid];
+		}
+
+		TB tb;
+		
+		vL = split(vs[4], "|");
+		vT = split(vs[8], "|");
+
+		for(i = 0; i < vL.size(); i++)
+		{
+			ss.clear();
+			ss.str("");
+			ss << vL[i];
+			ss >> L;
+//			if(L < 0)
+//				L = -L;
+			tb.vRoad.push_back(L);
+			
+			if(g.mRoad.find(L) == g.mRoad.end())
+				continue;
+
+			ss.clear();
+			ss.str("");
+			ss << vT[i];
+			ss >> T;
+		}
+
+		ss.clear();
+		ss.str("");
+		ss << vs[26];
+		ss >> tb.sTimeStamp;
+
+		ss.clear();
+		ss.str("");
+		ss << vs[27];
+		ss >> tb.eTimeStamp;
+
+		ss.clear();
+		ss.str("");
+		ss << vs[23];
+		ss >> tb.sx;
+		ss.clear();
+		ss.str("");
+		ss << vs[22];
+		ss >> tb.sy;
+		
+		ss.clear();
+		ss.str("");
+		ss << vs[25];
+		ss >> tb.ex;
+		ss.clear();
+		ss.str("");
+		ss << vs[24];
+		ss >> tb.ey;
+
+		vT.clear();
+		vL.clear();
+		vs.clear();
+		j++;
+		vDriver[dID].vTB.push_back(tb);
+	}
+	inTraj.close();
+
+	ofstream ofile(("../data/" + conf.city + "/" + conf.city + "DriverTrajectory").c_str());
+	ofile << vDriver.size() << endl;
+	cout << "Writing driver trajectory" << endl;
+	vector<driver>::iterator	ivDriver;
+	vector<TB>::iterator		ivTB;
+	vector<int>::iterator		ivRoad;
+	for(ivDriver = vDriver.begin(); ivDriver != vDriver.end(); ivDriver++)
+	{
+		ofile << (*ivDriver).driverID << "\t" << (*ivDriver).vTB.size() << endl;
+		for(ivTB = (*ivDriver).vTB.begin(); ivTB != (*ivDriver).vTB.end(); ivTB++)
+		{ 
+			ofile << setprecision(15) << (*ivTB).sTimeStamp << "\t" << (*ivTB).eTimeStamp << "\t" << (*ivTB).sx << "\t" << (*ivTB).sy << "\t" << (*ivTB).ex << "\t" << (*ivTB).ey << "\t" << (*ivTB).vRoad.size();
+			for(ivRoad = (*ivTB).vRoad.begin(); ivRoad != (*ivTB).vRoad.end(); ivRoad++)
+			{
+				ofile << "\t" << *ivRoad;
+			}
+			ofile << endl;
+		}
+	}
+	ofile.close();
+}
+	
+int	RoadNetwork::readBriefTrajectory()
+{
+	ifstream inBT((conf.datapath + conf.city + "/" + conf.city + "DriverTrajectoryTime").c_str());
+	if(!inBT)
+	{
+		cout << "Cannot open brief trajectory file" << endl;
+		return -1;
+	}
+	cout << "Reading Brief Trajectory File" << endl;
+
+	int driverNum, tNum, rNum, i, j, k, driverID, hour, min, sec, roadID;
+	inBT >> driverNum;
+	for(i = 0; i < driverNum; i++)
+	{
+		inBT >> driverID >> tNum;
+//		vector<TB> vTB;
+		for(j = 0; j < tNum; j++)
+		{
+			TB tb;
+			tb.id = j;
+			inBT >> hour >> min >> sec;
+			tb.sTime = hour*60*60 + min*60 +sec;
+			inBT >> hour >> min >> sec;
+			tb.eTime = hour*60*60 + min*60 +sec;
+			inBT >> tb.sx >> tb.sy >> tb.ex >> tb.ey;
+			inBT >> rNum;
+			vector<int> vRoad;
+			for(k = 0; k < rNum; k++)
+			{
+				inBT >> roadID;
+				vRoad.push_back(roadID);
+			}
+			tb.vRoad = vRoad;
+			vDriver[driverID].vTB.push_back(tb);
+		}
+	}
+	inBT.close();
+}
+	
+double RoadNetwork::testDriver()
+{
+	readDriver();
+	readCost();
+	readBriefTrajectory();
+	vector<driver>::iterator	ivDriver;
+	vector<TB>::iterator		ivTB;
+	int i = 0;
+	bool diff;
+	double driverD = 0;
+	double avgD = 0;
+	int j = 0;
+	int dn=0;
+	int an=0;
+	for(ivDriver = vDriver.begin(); ivDriver != vDriver.end(); ivDriver++)
+	{
+//		if(i > 50)
+//			break;
+		for(ivTB = (*ivDriver).vTB.begin(); ivTB != (*ivDriver).vTB.end(); ivTB++)
+		{
+			i++;
+			cout << "driverID:" << (*ivDriver).driverID << "\tTid:" << (*ivTB).id << endl;
+			double t1 = recreatePathTimeDriver((*ivDriver).driverID, (*ivTB).id, diff, i);
+			double t2 = recreatePathTimeAvg((*ivDriver).driverID, (*ivTB).id);
+			double sTime = (*ivTB).sTime;
+			double eTime = (*ivTB).eTime;
+			if(t1 < sTime)
+				t1 += 24*60*60;
+			if(t2 < sTime)
+				t2 += 24*60*60;
+			if(eTime < sTime)
+				eTime += 24*60*60;
+			cout << endl << "Test " << i << endl;
+			if(!diff)
+				cout << "Driver and Avg are the same" << endl;
+			else
+			{
+				j++;
+				cout << "Different" << endl;
+	//			driverD += fabs(t1 - eTime);
+			}
+			cout << "Driver use time:" << t1 - sTime << " seconds" << endl;
+			cout << "Avg use time:" << t2 - sTime << " seconds" << endl;
+			cout << "Original trajectory use time:" << eTime - sTime << endl << endl;
+			int dd = fabs(t1 - sTime - (eTime - sTime));
+			int ad = fabs(t2 - sTime - (eTime - sTime));
+			if(dd < ad)
+				dn++;
+			else if(dd > ad)
+				an++;
+			avgD += fabs((double)(t2 - eTime)/(double)(eTime-sTime));
+			driverD += fabs((double)(t1 - eTime)/(double)(eTime-sTime));
+		}
+	}
+	cout << "i:" << i << "\tj:" << j << endl;
+	cout << driverD  << "\t" << avgD << endl;
+	cout << endl << "Driver avg diff :" << driverD / i << endl;
+	cout << "Avg avg diff :" << avgD / i<< endl;
+	cout << "Driver near time:" << dn << "\tAvg near time:" << an << endl;
+}
+	
+double RoadNetwork::recreatePathTimeDriver(int driverID, int trajectoryID, bool &diff, int testNO)
+{
+	vector<int>::iterator	ivRoad;
+	int sTime = vDriver[driverID].vTB[trajectoryID].sTime;
+	double currentTime = sTime;
+	int roadID;
+	diff = false;
+	map<int, map<int, double> > mmCost;
+	map<int, map<int, double> > mmV;
+	for(ivRoad = vDriver[driverID].vTB[trajectoryID].vRoad.begin(); ivRoad != vDriver[driverID].vTB[trajectoryID].vRoad.end(); ivRoad++)
+	{
+		int timeSlot = (int)(currentTime/T);
+		if(*ivRoad < 0)
+			roadID = -(*ivRoad);
+		else
+			roadID = *ivRoad;
+		if(g.mRoad[roadID].mVC[timeSlot] == 0)
+		{
+			double cost = g.mRoad[roadID].mCost[timeSlot];
+			if(currentTime + cost > (timeSlot + 1) * T)
+			{
+				double v = g.mRoad[roadID].mAvgV[timeSlot];
+				double l1 = v / 3.6 * ((timeSlot+1)*T - currentTime);
+				double l2 = g.mRoad[roadID].length - l1;
+				double cost2;
+			
+				if(g.mRoad[(timeSlot + 1) % TN].mVC[(timeSlot+1)%TN] == 0)
+				{
+					cost2 = l2 / (g.mRoad[roadID].mAvgV[(timeSlot+1) % TN]/3.6);
+				}
+				else
+				{
+					cost2 = l2 / (getDriverV(driverID, roadID, (timeSlot+1)%TN, mmV)/3.6);
+				}
+				currentTime = (timeSlot+1)*T + cost2;
+			}
+			else
+			{
+				currentTime += cost;
+			}
+		}
+		else
+		{
+			diff = true;
+			double cost = getDriverCost(driverID, roadID, timeSlot, mmCost, mmV);
+			if(currentTime + cost > (timeSlot + 1) * T)
+			{
+				double v = g.mRoad[roadID].mAvgV[timeSlot];
+				double l1 = v / 3.6 * ((timeSlot+1)*T - currentTime);
+				double l2 = g.mRoad[roadID].length - l1;
+				double cost2;
+				if(g.mRoad[(timeSlot + 1) % TN].mVC[(timeSlot+1)%TN] == 0)
+				{
+					cost2 = l2 / (g.mRoad[roadID].mAvgV[(timeSlot+1) % TN]/3.6);
+				}
+				else
+				{
+					cost2 = l2 / (getDriverV(driverID, roadID, (timeSlot+1)%TN, mmV)/3.6);
+				}
+				currentTime = (timeSlot+1)*T + cost2;
+			}
+			else
+			{
+				currentTime += cost;
 			}
 		}
 	}
 
-	ofAvg.close();
-	ofDev.close();
+	if(currentTime >= 24*60*60)
+		currentTime -= 24*60*60;
+
+	return currentTime;
 }
+
+double RoadNetwork::recreatePathTimeAvg(int driverID, int trajectoryID)
+{
+	vector<int>::iterator	ivRoad;
+	int sTime = vDriver[driverID].vTB[trajectoryID].sTime;
+	double currentTime = sTime;
+	int roadID;
+	map<int, map<int, double> > mmCost;
+	map<int, map<int, double> > mmV;
+	for(ivRoad = vDriver[driverID].vTB[trajectoryID].vRoad.begin(); ivRoad != vDriver[driverID].vTB[trajectoryID].vRoad.end(); ivRoad++)
+	{
+		int timeSlot = (int)(currentTime/T);
+		if(*ivRoad < 0)
+			roadID = -(*ivRoad);
+		else
+			roadID = *ivRoad;
+		double cost = g.mRoad[roadID].mCost[timeSlot];
+		if(currentTime + cost > (timeSlot + 1) * T)
+		{
+			double v = g.mRoad[roadID].mAvgV[timeSlot];
+			double l1 = v /3.6 * ((timeSlot+1)*T - currentTime);
+			double l2 = g.mRoad[roadID].length - l1;
+			double cost2;
+			cost2 = l2 / (g.mRoad[roadID].mAvgV[(timeSlot+1) % TN]/3.6);
+			currentTime = (timeSlot+1)*T + cost2;
+		}
+		else
+		{
+			currentTime += cost;
+		}
+	}
+
+	if(currentTime >= 24*60*60)
+		currentTime -= 24*60*60;
+
+	return currentTime;
+}
+

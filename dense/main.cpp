@@ -6,7 +6,7 @@ int main()
 	RoadNetwork rn;
 	rn.buildGraph();
 //	rn.testDijA();
-//	rn.testTimeDij();
+	rn.testTimeDij();
 	
 	vector<int> vRoadList;
 	vector<int>::iterator ivRL;

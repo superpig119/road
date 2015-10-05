@@ -27,10 +27,13 @@ typedef struct ROAD
 	int		direction;	//A6
 	float	length;		//A13
 	bool	isolated;
-	map<double, double>	mV;
+	map<int, double>	mMinV;
+	map<int, double>	mSpanV;
+	map<double, vector<double> >	mV;
 	set<int>					sNeighborRoad;	//connected road,include main 
 	map<int, double>			mAvgV;		//time slot number, average speed
 	map<int, vector<double> >	mGraV;		//time slot number, speed
+	map<int, int>				mVC;		//time slot number, roadCID
 	map<int, double>	mCost;				//time slot number, travel time(sec)
 	vector<pair<double, double> > vpRoadDetail;	//Road line detail
 }roadInfo;
@@ -58,11 +61,41 @@ typedef struct GRAPH
 	map<double, roadInfo>	mRoad;	//ID, roadInfo
 }Graph;
 
+typedef struct RCU
+{
+	vector<pair<int, int> > vpRT;	//roadID, t
+	double avg;
+	double dev;
+}rcu;
+
+typedef struct trajectorybrief
+{
+	int		id;
+	double	sTimeStamp;	
+	double	eTimeStamp;	
+	int		sTime;		//second in day
+	int		eTime;		
+	double	sx,sy,ex,ey;
+	vector<int>	vRoad;
+}TB;
+
+typedef struct DRIVER
+{
+	double	driverID;
+	map<int, vector<double> >	mRVtmp;	//road type, speed history
+	map<int, double>			mRV;	//road type, estimate speed
+	vector<int>					vRoad;
+	vector<double>				vTime;
+	vector<int>					vSpeed;
+	vector<TB>					vTB;
+}driver;
+
 class RoadNetwork
 {
 public:
 	Graph	g;
 	Conf	conf;
+	vector<driver>	vDriver;
 
 	int		buildGraph();	//Build the roadnetwork
 	int		readNodeMap();
@@ -92,12 +125,33 @@ public:
 	double	rad(double d);
 	double coorDistance(double ID1, double ID2);
 
+	void	driverAttach();
 	void	speedRawClassify();	//
+	void	calMinSpan();	//road's min&span
+	void	readRC();		//read road's category
+	int		readDriverSpeed();	//get driver's speed from trajectory
+	int		driverAvg();	//average the speed in driverRCDetail file
+
+	void	testDriverFastest();
+	void	readDriver();	//build up driver before shortest path
+	int		readMinSpan();	//read road's minV spanV file
+	int		readDriverProfile();//read driverRC file
+	double	shortestTimeDijDriver(double ID1, double ID2, int t1, vector<int>& vRoadList, vector<double>& vRTime, vector<double>& vRTakeTime, double &d, double driverID);
+	double	getDriverCost(int driverID, int roadID, int t, map<int, map<int, double > > &mmCost, map<int, map<int, double> > &mmV);
+	double  getDriverV(int driverID, int roadID, int t, map<int, map<int, double> > &mmV);
+
+	int		extractBriefTrajectory();
+	int		readBriefTrajectory();
+	double	testDriver();
+	double	testAvg();
+	double	recreatePathTimeDriver(int driverID, int trajectoryID, bool &diff, int testNO);
+	double	recreatePathTimeAvg(int driverID, int trajectoryID);
 
 	map<double, double> mIDTrans;	//Original,Order
 	map<double, double> mRIDTrans;	//Order,Original
 	map<double, double> mNodeMap;
-
+	map<int, rcu>		mRCU;		//CID,rcu
+ 
 	int		T;	//Speed interval size
 	int		TN;	//Speed interval number
 };
