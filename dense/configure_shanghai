@@ -2,11 +2,13 @@ nodeFile ../data/shanghai/shanghaiNode
 edgeFile	../data/shanghai/shanghaiRoad
 trajectoryFile ../data/shanghai/shanghaiTrajectory
 speedFile	../data/shanghai/shanghaiSpeedTime
-interval	1	0
+interval	0	30
 avgSpeedFile	../data/shanghai/shanghaiAvgSpeed
 dataPath	../data/shanghai/
 isoRoadFile	../data/shanghai/shanghaiIsoRoad
 isoNodeFile ../data/shanghai/shanghaiIsoNode
 nodeMapFile	../data/shanghai/shanghaiNodeMap
-datapath	../data/
-testNum	10
+dataPath	../data/
+splitType	Slot
+MS			ST
+testNum	100

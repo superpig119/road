@@ -44,6 +44,11 @@ int Conf::readConf()
 			ifile >> nodeMapFilePath;
 		else if(s == "datapath")
 			ifile >> datapath;
+		else if(s == "splitType")
+			ifile >> splitType;
+		else if(s == "MS")
+			ifile >> MS;
+
 	}
 
 	return 0;

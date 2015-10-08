@@ -21,6 +21,8 @@ public:
 	string isoNodeFilePath;
 	string nodeMapFilePath;
 	string datapath;
+	string splitType;//universal, slot, continous, adpative
+	string MS;	//Missing value:temporal,spatial,ST, correlation
 	int readConf();
 	int	h;
 	int	m;

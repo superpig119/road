@@ -31,10 +31,11 @@ typedef struct ROAD
 	map<int, double>	mSpanV;
 	map<double, vector<double> >	mV;
 	set<int>					sNeighborRoad;	//connected road,include main 
-	map<int, double>			mAvgV;		//time slot number, average speed
 	map<int, vector<double> >	mGraV;		//time slot number, speed
+	map<int, vector<double> >	mGraC;		//time slot number. cost
 	map<int, int>				mVC;		//time slot number, roadCID
-	map<int, double>	mCost;				//time slot number, travel time(sec)
+	map<int, double>			mCost;		//time slot number, travel time(sec)
+	map<int, double>			mAvgV;		//time slot number, average speed
 	vector<pair<double, double> > vpRoadDetail;	//Road line detail
 }roadInfo;
 
@@ -90,6 +91,26 @@ typedef struct DRIVER
 	vector<TB>					vTB;
 }driver;
 
+typedef struct TRAVELTIMEUNIT
+{
+	int		t1;	//interval start
+	int		t2;	//interval end
+	double	a;	//(1/v1-v2)	
+	double	b;	//(d/v2)
+	double	cost;//bc=false,costant cost
+	double	min;//min cost
+	bool	bc;	//true:constant false:function
+}travelTimeUnit;
+
+typedef struct TRAVELTIME
+{
+	int		t1;
+	double	min;
+	int		minIndex;
+	map<int, travelTimeUnit> vTTU; //start time,travel info
+	map<int, vector<double> > mvRoad;//each travelTime Unit's trajectory
+}travelTimeInfo;
+
 class RoadNetwork
 {
 public:
@@ -117,7 +138,10 @@ public:
 	vector<string> split(const string &s, const string &seperator);
 
 	double	shortestTimeDij(double ID1, double ID2, int t1, vector<int>& vRoadList, vector<double>& vRTime, vector<double>& vRTakeTime, double &d);
-	void	IntSingleFastestPaths(double ID1, double ID2, vector<int>& vRoadList, int t1, int t2, vector<int>& vt);	//ICDE2006
+	double	FastestSingleTimePoint(double ID1, double ID2, int startTime, vector<int> &vRoadList, vector<double> &vRTime, vector<double> & vRTakeTime, double &distance);
+	void	IntervalSingleFastestPaths(double ID1, double ID2, vector<int>& vRoadList, int t1, int t2, vector<int>& vt);	//ICDE2006
+	void	testISFP();
+	int		getTimeInterval(int t1, int t2, double roadID, vector<pair<int, int> > &vpTI);
 
 	void	testDijA();
 	void	testTimeDij();
@@ -146,6 +170,7 @@ public:
 	double	testAvg();
 	double	recreatePathTimeDriver(int driverID, int trajectoryID, bool &diff, int testNO);
 	double	recreatePathTimeAvg(int driverID, int trajectoryID);
+	int		extractTrajectoryTime();
 
 	map<double, double> mIDTrans;	//Original,Order
 	map<double, double> mRIDTrans;	//Order,Original
